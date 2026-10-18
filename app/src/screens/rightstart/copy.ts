@@ -113,6 +113,7 @@ export const add = {
   cancel: 'Cancel',
   denied: 'Camera not available. Choose a photo instead.',
   tapToStart: 'Tap to start the camera',
+  upload: 'Upload a photo',
   inApp: 'Camera not working? Open this page in Chrome.',
   typeName: 'Type the name',
   typeNameField: 'Product name',

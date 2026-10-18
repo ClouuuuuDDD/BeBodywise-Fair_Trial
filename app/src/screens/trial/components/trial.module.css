@@ -195,6 +195,12 @@
   box-shadow: var(--shadow-pill);
 }
 
+/* "Upload" sits beside "Take photo", the same height. */
+.cam :global([data-testid='upload-photo']) {
+  min-height: var(--pill-height) !important;
+  margin-top: 6px;
+}
+
 .cam label {
   width: 100%;
   justify-content: center;

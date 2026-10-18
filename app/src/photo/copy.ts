@@ -25,4 +25,6 @@ export const CAMERA_COPY = {
   retake: 'Retake',
   noCamera: 'Camera not available. Pick a photo instead.',
   upload: 'Choose a photo',
+  uploadShort: 'Upload',
+  uploadLabel: 'Upload a photo instead',
 } as const;

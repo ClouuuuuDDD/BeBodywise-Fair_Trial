@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import { inAppBrowser, nextFrame, playVideo } from '../../../photo/capture';
 import { add } from '../copy';
 import styles from './CameraCard.module.css';
@@ -16,19 +16,28 @@ export interface CameraCardProps {
   captured?: boolean;
   /** Drawn between the card and the shutter (Dr. Mehr's tip). */
   children?: ReactNode;
+  /** Set to a function that opens the photo picker, for an "Upload a photo" button elsewhere on the screen. */
+  pickRef?: MutableRefObject<(() => void) | null>;
 }
 
 /**
  * The dark camera card on 04a: live preview with corner guides and a shutter, or a photo chooser when the camera is
  * denied or missing (data-testid="photo-upload"). Label photos only: it shows a bottle, never her body.
  */
-export function CameraCard({ onPhoto, busy, label, captured, children }: CameraCardProps) {
+export function CameraCard({ onPhoto, busy, label, captured, children, pickRef }: CameraCardProps) {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<CameraState>('starting');
   // The browser refused to play the preview without a tap (Android in-app browsers, some Chrome cases).
   const [needsTap, setNeedsTap] = useState(false);
+  useEffect(() => {
+    if (!pickRef) return;
+    pickRef.current = () => file.current?.click();
+    return () => {
+      pickRef.current = null;
+    };
+  }, [pickRef]);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,7 +162,6 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
         ref={file}
         type="file"
         accept="image/*"
-        capture="environment"
         className={styles.input}
         data-testid="photo-upload"
         aria-label={add.take}

@@ -88,3 +88,35 @@ test.describe('in an app\'s built-in browser (play only from a tap)', () => {
     await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
   });
 });
+
+test('upload fallback: "Upload a photo" opens a picker that allows the gallery, on both photo screens', async ({ page }) => {
+  const tid = (id: string) => page.getByTestId(id);
+  const label = await import('node:fs').then((fs) => fs.readFileSync('e2e/fixtures/label-test.jpg'));
+  await page.goto('/check/shelf/add');
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), tid('upload-photo').click()]);
+  // No `capture` attribute: the phone offers the gallery and files, not only the camera.
+  expect(await chooser.element().evaluate((e) => e.hasAttribute('capture'))).toBe(false);
+  await chooser.setFiles({ name: 'label.jpg', mimeType: 'image/jpeg', buffer: label });
+  await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
+
+  await page.goto('/check/1');
+  for (const [o, next] of [['moderate', /check\/2$/], ['year-plus', /check\/3$/], ['razor', /check\/4$/], ['no', /check\/5$/], ['yes', /check\/shelf$/]] as const) {
+    await tid(`option-${o}`).click();
+    await page.waitForURL(next);
+  }
+  await tid('primary').click();
+  await page.waitForURL(/shelf\/answer/);
+  await tid('primary').click();
+  await page.waitForURL(/check\/match/);
+  await tid('save-plan').click();
+  await page.waitForURL(/\/start$/);
+  await tid('primary').click();
+  await page.waitForURL(/routine/);
+  await tid('primary').click();
+  await page.waitForURL(/start\/photo/);
+  const [skin] = await Promise.all([page.waitForEvent('filechooser'), tid('upload-photo').click()]);
+  expect(await skin.element().evaluate((e) => e.hasAttribute('capture'))).toBe(false);
+  await skin.setFiles({ name: 'u.jpg', mimeType: 'image/jpeg', buffer: label });
+  // A label is not skin: it is measured and sent back for a retake, which proves the upload went through.
+  await expect(tid('photo-fail')).toBeVisible();
+});

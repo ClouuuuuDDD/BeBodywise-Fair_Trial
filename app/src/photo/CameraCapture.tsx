@@ -31,6 +31,7 @@ const btn = {
 export function CameraCapture({ site, onCapture }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<'idle' | 'starting' | 'live' | 'busy' | 'fallback'>(cameraSupported() ? 'idle' : 'fallback');
   // The browser refused to play the preview without a tap (Android in-app browsers, or the tap expired during the prompt).
   const [needsTap, setNeedsTap] = useState(false);
@@ -193,7 +194,7 @@ export function CameraCapture({ site, onCapture }: Props) {
       </div>
       <p style={{ color: 'var(--ink-muted)', fontSize: 14 }}>{CAMERA_COPY.cardTip}</p>
       {inAppBrowser() ? <p style={{ margin: '0 0 6px', color: 'var(--ink-soft)', fontSize: 13, fontWeight: 700 }}>{CAMERA_COPY.inApp}</p> : null}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         {state === 'idle' && (
           <button type="button" style={btn} onClick={start} data-testid="primary">
             {CAMERA_COPY.primary}
@@ -204,23 +205,37 @@ export function CameraCapture({ site, onCapture }: Props) {
             {CAMERA_COPY.primary}
           </button>
         )}
-        {state === 'fallback' && (
-          <label style={{ ...btn, display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
+        {state === 'fallback' ? (
+          <button type="button" style={{ ...btn, flex: 1 }} onClick={() => fileRef.current?.click()}>
             {CAMERA_COPY.upload}
-            <input
-              data-testid="photo-upload"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onCapture([f]);
-                e.target.value = '';
-              }}
-            />
-          </label>
-        )}
+          </button>
+        ) : state !== 'starting' ? (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={state === 'busy'}
+            aria-label={CAMERA_COPY.uploadLabel}
+            data-testid="upload-photo"
+            style={{ ...btn, flex: 'none', padding: '0 18px', background: 'var(--surface)', color: 'var(--primary)', boxShadow: 'var(--shadow-chip)' }}
+          >
+            {CAMERA_COPY.uploadShort}
+          </button>
+        ) : null}
+        {/* One picker for both: gallery, files or the phone's own camera app (no capture attribute, so she can choose). */}
+        <input
+          ref={fileRef}
+          data-testid="photo-upload"
+          type="file"
+          accept="image/*"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onCapture([f]);
+            e.target.value = '';
+          }}
+        />
       </div>
     </div>
   );
