@@ -1,0 +1,67 @@
+{
+  "_about": "Deterministic rules for the shelf check. A label read (photo, barcode or typed) produces an INCI list; each ingredient is matched to a class below (case-insensitive, punctuation-stripped, synonyms included). Pair rules then run per AREA and TIME the woman says she uses each product. The LLM never decides; it only reads label text and rewords the answer. Rules are a concept draft for a fellowship prototype and must be reviewed by a dermatologist before real use.",
+  "classes": {
+    "aha": { "label": "Exfoliating acid (AHA)", "match": ["glycolic acid", "lactic acid", "mandelic acid", "malic acid", "tartaric acid", "ammonium glycolate", "ammonium lactate"], "note": "Citric acid and sodium lactate are usually pH adjusters or buffers; ignore them unless the label states a percentage." },
+    "bha": { "label": "Exfoliating acid (BHA)", "match": ["salicylic acid", "betaine salicylate", "capryloyl salicylic acid", "willow bark extract", "salix alba bark extract"] },
+    "pha": { "label": "Gentle acid (PHA)", "match": ["gluconolactone", "lactobionic acid"] },
+    "retinoid": { "label": "Retinoid", "match": ["retinol", "retinal", "retinaldehyde", "retinyl palmitate", "retinyl retinoate", "hydroxypinacolone retinoate", "adapalene", "tretinoin"] },
+    "benzoyl-peroxide": { "label": "Benzoyl peroxide", "match": ["benzoyl peroxide"] },
+    "vitamin-c-pure": { "label": "Vitamin C (pure)", "match": ["ascorbic acid", "l-ascorbic acid"], "note": "Derivatives such as 3-O-ethyl ascorbic acid, sodium ascorbyl phosphate and ascorbyl glucoside do not trigger pair rules." },
+    "brightener": { "label": "Brightener", "match": ["niacinamide", "alpha arbutin", "arbutin", "kojic acid", "kojic acid dipalmitate", "tranexamic acid", "azelaic acid", "glycyrrhiza glabra root extract", "licorice extract", "morus alba extract", "3-o-ethyl ascorbic acid"] },
+    "steroid": { "label": "Steroid (prescription)", "match": ["mometasone furoate", "clobetasol propionate", "betamethasone", "betamethasone valerate", "fluocinolone acetonide", "hydrocortisone", "beclomethasone"] },
+    "hydroquinone": { "label": "Hydroquinone (prescription)", "match": ["hydroquinone"] },
+    "depilatory": { "label": "Hair removal chemical", "match": ["potassium thioglycolate", "calcium thioglycolate", "thioglycolic acid", "sodium thioglycolate"] },
+    "antiperspirant": { "label": "Antiperspirant (aluminium)", "match": ["aluminium chlorohydrate", "aluminum chlorohydrate", "aluminium zirconium tetrachlorohydrex gly", "aluminum zirconium tetrachlorohydrex gly", "aluminium sesquichlorohydrate", "aluminum sesquichlorohydrate", "aluminium chloride", "aluminum chloride"] },
+    "drying-alcohol": { "label": "Drying alcohol", "match": ["alcohol denat", "alcohol denat.", "denatured alcohol", "ethanol", "sd alcohol", "isopropyl alcohol", "alcohol"], "note": "Only counts in the first five ingredients. Fatty alcohols (cetyl, cetearyl, cetostearyl, stearyl) never count." },
+    "fragrance": { "label": "Fragrance", "match": ["parfum", "perfume", "fragrance", "limonene", "linalool", "citral", "geraniol", "eugenol", "citronellol"] },
+    "physical-scrub": { "label": "Scrub particles", "match": ["walnut shell powder", "juglans regia shell powder", "apricot seed powder", "perlite", "pumice", "sugar", "sucrose", "polyethylene beads"] },
+    "bleach": { "label": "Bleach", "match": ["hydrogen peroxide", "ammonium persulfate", "potassium persulfate"] },
+    "soothing": { "label": "Soothing", "match": ["aloe barbadensis leaf juice", "aloe vera extract", "panthenol", "allantoin", "centella asiatica extract", "ceramide np", "glycerin", "urea"] },
+    "sunscreen": { "label": "Sunscreen", "match": ["zinc oxide", "titanium dioxide", "avobenzone", "butyl methoxydibenzoylmethane", "octocrylene", "ethylhexyl methoxycinnamate", "bemotrizinol", "bis-ethylhexyloxyphenol methoxyphenyl triazine", "diethylamino hydroxybenzoyl hexyl benzoate", "ethylhexyl triazone", "homosalate"] }
+  },
+  "product_types": {
+    "_note": "Inferred from classes plus the name read on the front, used to pick the mascot.",
+    "deodorant-stick": "deodorant",
+    "deodorant-spray": "spray-can",
+    "toner-or-exfoliant": "toner",
+    "body-lotion": "lotion",
+    "serum": "serum",
+    "hair-removal-cream": "hair-removal",
+    "retinoid": "retinol",
+    "sunscreen": "sunscreen",
+    "chemist-cream": "chemist-tube",
+    "bodywise-rollon-4": "rollon",
+    "bodywise-rollon-6": "rollon-strong",
+    "bodywise-cream": "cream-jar"
+  },
+  "answers": {
+    "fine": { "label": "Fine together", "tone": "teal" },
+    "split-time": { "label": "Different times", "tone": "blue" },
+    "pick-one": { "label": "Pick one here", "tone": "pink" },
+    "wait": { "label": "Leave a gap", "tone": "butter" },
+    "stop-ask": { "label": "Stop and ask a doctor", "tone": "rose" }
+  },
+  "pair_rules": [
+    { "id": "steroid-anywhere-underarm", "if": ["steroid"], "area": "underarm", "answer": "stop-ask", "say": "{product} has {ingredient}, a prescription steroid. On underarms it can thin the skin and make darkness worse. Please stop using it there and show this to a doctor.", "priority": 1 },
+    { "id": "hydroquinone", "if": ["hydroquinone"], "area": "underarm", "answer": "stop-ask", "say": "{product} has hydroquinone. Don't add acids on top of it. A doctor should decide which one you use.", "priority": 1 },
+    { "id": "bleach", "if": ["bleach"], "area": "underarm", "answer": "stop-ask", "say": "{product} is a bleach. Please don't use it on underarm skin, and never with acids.", "priority": 1 },
+    { "id": "acid-acid", "if": ["aha|bha", "aha|bha"], "same_area": true, "answer": "pick-one", "say": "Both are exfoliating acids ({ingredient_a} and {ingredient_b}). On your underarms, use only one. {other} can stay on your {other_areas}.", "priority": 2 },
+    { "id": "acid-retinoid", "if": ["aha|bha", "retinoid"], "same_area": true, "same_time": true, "answer": "split-time", "say": "Acid in the morning, {ingredient_b} at night. Never both at once.", "priority": 2, "else_if_different_time": "fine" },
+    { "id": "acid-bpo", "if": ["aha|bha", "benzoyl-peroxide"], "same_area": true, "answer": "split-time", "say": "Use them at different times of day, or on different days.", "priority": 2 },
+    { "id": "acid-vitc", "if": ["aha|bha", "vitamin-c-pure"], "same_area": true, "same_time": true, "answer": "split-time", "say": "Vitamin C in the morning, acid at night.", "priority": 3 },
+    { "id": "acid-scrub", "if": ["aha|bha", "physical-scrub"], "same_area": true, "answer": "pick-one", "say": "A scrub on top of an acid is too much rubbing. Skip the scrub on underarms.", "priority": 2 },
+    { "id": "acid-depilatory", "if": ["aha|bha", "depilatory"], "same_area": true, "answer": "wait", "say": "After {product_b}, wait 2 days before the acid. Your skin is raw underneath.", "priority": 2 },
+    { "id": "acid-alcohol-spray", "if": ["aha|bha", "drying-alcohol"], "same_area": true, "same_time": true, "answer": "split-time", "say": "{product_b} is mostly alcohol and will sting on acid-treated skin. Spray in the morning, roll-on at night, or try the roll-on alone for a week.", "priority": 3 },
+    { "id": "rollon-antiperspirant", "if": ["bodywise-rollon", "antiperspirant"], "same_area": true, "answer": "split-time", "ask": "sweat-or-smell", "say_smell": "The roll-on also controls smell. You may not need both.", "say_sweat": "The roll-on has no aluminium, so it won't stop sweat. Keep {product_b} for the morning, roll-on at night.", "priority": 3 },
+    { "id": "acid-fragrance", "if": ["aha|bha", "fragrance"], "same_area": true, "same_time": true, "answer": "fine", "say": "Fine together. If you start stinging, the fragrance-free roll-on is the easier switch.", "priority": 4 },
+    { "id": "brightener-any", "if": ["brightener"], "answer": "fine", "say": "Fine together. Niacinamide and arbutin sit well with acids.", "priority": 5 },
+    { "id": "soothing-any", "if": ["soothing"], "answer": "fine", "say": "Fine together.", "priority": 5 },
+    { "id": "sunscreen-any", "if": ["sunscreen"], "answer": "fine", "say": "Good to have. Acids make skin more sun-sensitive.", "priority": 5 }
+  ],
+  "conditional_questions": {
+    "sweat-or-smell": { "when": "shelf has an antiperspirant used on underarms", "ask": "Do you use {product} to stop sweat, or for smell?", "options": ["Sweat", "Smell", "Both"] },
+    "where-used": { "when": "every added product", "ask": "Where do you use it?", "options": ["Underarms", "Face", "Body", "Neck"], "multi": true },
+    "when-used": { "when": "every added product", "ask": "When?", "options": ["Morning", "Night", "Both", "Now and then"] },
+    "pregnancy": { "when": "the pick would include retinol (cream or kit)", "ask": "Are you pregnant, trying, or breastfeeding?", "options": ["Yes", "No", "Prefer not to say"], "note": "Only asked when it changes the answer. 'Yes' or 'Prefer not to say' removes the retinol options and offers a doctor." }
+  }
+}

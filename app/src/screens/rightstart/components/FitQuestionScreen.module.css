@@ -1,0 +1,60 @@
+.doctorPoint {
+  right: -4px;
+  top: 66px;
+  z-index: 1;
+}
+
+.doctorCurious {
+  right: -6px;
+  top: 64px;
+  z-index: 1;
+}
+
+.head {
+  position: relative;
+  z-index: 2;
+  width: 225px;
+  padding-top: 30px;
+}
+
+.headWide {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 232px;
+  padding-top: 28px;
+}
+
+.title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.hint {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.opts {
+  position: relative;
+  z-index: 3;
+  padding-top: 44px;
+}
+
+.optsFirst {
+  position: relative;
+  z-index: 3;
+  padding-top: 34px;
+}
+
+.bubble {
+  margin-top: auto;
+  padding-bottom: 28px;
+}

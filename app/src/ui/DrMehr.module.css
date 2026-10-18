@@ -1,0 +1,89 @@
+.img {
+  display: block;
+  flex: none;
+  max-width: none;
+}
+
+.avatar {
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.bubble {
+  min-width: 0;
+  background: var(--surface);
+  border-radius: var(--radius-bubble);
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: var(--lh-body);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow-chip);
+  transform-origin: 0 100%;
+  animation: grow var(--dur-select) var(--ease-out) both;
+}
+
+.bubble b {
+  color: var(--ink-display);
+}
+
+.line {
+  display: block;
+  animation: rise 220ms var(--ease-out) both;
+}
+
+@keyframes grow {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: fade var(--dur-fade) linear both;
+    transform: none;
+  }
+
+  .line {
+    animation: none;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Short phones (Nord 4, Pixel with toolbars): big poses shrink so the screen fits without scrolling. */
+@media (max-height: 880px) {
+  .big {
+    width: calc(var(--art-w) * 0.72);
+    height: auto;
+  }
+}

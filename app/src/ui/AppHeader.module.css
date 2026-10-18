@@ -1,0 +1,95 @@
+.header {
+  position: relative;
+  z-index: 3;
+  flex: none;
+}
+
+.withBack {
+  padding: 14px 16px 0;
+}
+
+.plain {
+  padding: 18px 20px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-display);
+  box-shadow: 0 2px 6px rgba(1, 39, 73, 0.08);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--dur-select) var(--ease-out);
+}
+
+.back:active {
+  transform: scale(0.94);
+}
+
+.run {
+  font-weight: 800;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink-display);
+}
+
+.concept {
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.spacer {
+  width: var(--tap-min);
+  flex: none;
+}
+
+.privacy {
+  margin-top: 10px;
+  padding-inline: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back {
+    transition: none;
+  }
+
+  .back:active {
+    transform: none;
+  }
+}
+
+/* Short phones (docs/fit-plan.md): less air above the back button; the 44 px target stays. */
+@media (max-height: 880px) {
+  .withBack {
+    padding-top: 6px;
+  }
+
+  .plain {
+    padding-top: 10px;
+  }
+}

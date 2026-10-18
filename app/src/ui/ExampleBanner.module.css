@@ -1,0 +1,121 @@
+.bar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--butter-tint);
+  color: var(--butter-text);
+}
+
+.tag {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 3px 12px 1px;
+  border-radius: var(--radius-pill);
+  background: var(--butter);
+  color: var(--ink-display);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jump,
+.leave {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--primary-press);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.jump {
+  padding-inline: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-chip);
+}
+
+.leave {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--radius-tile);
+  background: var(--surface-muted);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.item:hover {
+  background: var(--tint-blue);
+}
+
+.itemLabel {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.2;
+  color: var(--ink-display);
+}
+
+.itemHint {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+/* Short phones: one slim line (docs/fit-plan.md, G3). */
+@media (max-height: 880px) {
+  .bar {
+    padding: 2px 12px;
+  }
+
+  .tag {
+    font-size: 12px;
+    padding: 2px 10px 0;
+  }
+
+  .jump,
+  .leave {
+    font-size: 13px;
+  }
+
+  .jump {
+    padding-inline: 12px;
+  }
+}

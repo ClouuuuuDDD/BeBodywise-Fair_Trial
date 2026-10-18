@@ -1,0 +1,35 @@
+{
+  "_label": "ILLUSTRATIVE sample data. Not facts. Not quoted anywhere else.",
+  "kpis": {
+    "trialsStarted": 3390,
+    "reachedJudgeBy": 61,
+    "working": 57,
+    "shared": 72
+  },
+  "shelf": [
+    { "id": "deodorant", "label": "Deodorant", "mascot": "deodorant", "pct": 82 },
+    { "id": "lotion", "label": "Body lotion", "mascot": "lotion", "pct": 51 },
+    { "id": "toner", "label": "Acid toner", "mascot": "toner", "pct": 34 },
+    { "id": "serum", "label": "Serum", "mascot": "serum", "pct": 28 },
+    { "id": "hair-removal", "label": "Hair removal cream", "mascot": "hair-removal", "pct": 12 },
+    { "id": "sunscreen", "label": "Sunscreen", "mascot": "sunscreen", "pct": 9 }
+  ],
+  "stop": [
+    { "label": "Too slow before week 6", "pct": 38 },
+    { "label": "Reaction", "pct": 22 },
+    { "label": "No change after fair trial", "pct": 17 },
+    { "label": "Price", "pct": 13 },
+    { "label": "Forgot", "pct": 10 }
+  ],
+  "patterns": [
+    { "id": "pattern1", "trials": 1410, "working": 66, "noChange": 14 },
+    { "id": "pattern2", "trials": 980, "working": 44, "noChange": 23 },
+    { "id": "pattern3", "trials": 760, "working": 61, "noChange": 16 },
+    { "id": "pattern4", "trials": 240, "working": 21, "noChange": 52, "highlight": true }
+  ],
+  "signals": [
+    { "value": "3.1x", "tone": "pink" },
+    { "value": "9%", "tone": "violet" },
+    { "value": "52%", "tone": "rose" }
+  ]
+}

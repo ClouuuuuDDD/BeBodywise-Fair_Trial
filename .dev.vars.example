@@ -1,0 +1,7 @@
+# Copy to .dev.vars (gitignored). Read by `npm run dev:api` / `npm run preview` (wrangler pages dev).
+# Primary reader: Google Gemini (https://aistudio.google.com/apikey)
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash-lite
+# Optional fallback if Gemini fails or has no key: an OpenRouter free vision model
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=google/gemma-3-27b-it:free

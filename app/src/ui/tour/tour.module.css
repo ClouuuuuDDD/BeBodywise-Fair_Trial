@@ -1,0 +1,211 @@
+.bar {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  padding: 2px 12px 4px;
+  background: var(--tint-lilac);
+  color: var(--ink-display);
+  border-bottom: 1px solid var(--lilac-line);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+}
+
+.tag {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 2px 9px 0;
+  border-radius: var(--radius-pill);
+  background: var(--violet);
+  color: #fff;
+}
+
+.chapter {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 2px;
+}
+
+.link {
+  min-height: 36px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--violet);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.days {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.today {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* One row; slides sideways on narrow phones instead of wrapping onto a second line. */
+.jumps {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+
+.jump {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-chip);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary-press);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.jump:hover {
+  background: var(--tint-blue);
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mehr {
+  flex: none;
+}
+
+.bridge {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--violet);
+}
+
+.points {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.points dt {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.points dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ch;
+}
+
+.map li {
+  counter-increment: ch;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.map li::before {
+  content: counter(ch) '. ';
+}
+
+.map li.here {
+  background: var(--violet);
+  color: #fff;
+}
+
+/* Short phones: the whole chapter card fits without scrolling inside the sheet (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .card {
+    gap: 6px;
+  }
+
+  .bridge {
+    font-size: 16px;
+  }
+
+  .points dt {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  .points dd {
+    font-size: 14px;
+    line-height: 1.38;
+  }
+
+  .map {
+    gap: 4px;
+  }
+
+  .map li {
+    padding: 2px 8px;
+    font-size: 11.5px;
+  }
+}

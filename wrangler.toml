@@ -1,0 +1,9 @@
+# Cloudflare Pages project for Fair Trial.
+# Build command (Pages dashboard): npm run build    Output: app/dist
+# Functions live in functions/ at the repo root and are picked up automatically.
+# Secrets: GEMINI_API_KEY (required) and OPENROUTER_API_KEY (optional backup) are Pages secrets
+# (dashboard: Settings > Variables and Secrets, or `wrangler pages secret put`).
+# Local secrets go in .dev.vars (gitignored); see .dev.vars.example.
+name = "fair-trial"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "app/dist"

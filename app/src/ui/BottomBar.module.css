@@ -1,0 +1,51 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  background: var(--ground);
+}
+
+.help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: var(--pill-height);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(1, 39, 73, 0.08), 0 12px 24px rgba(1, 39, 73, 0.12);
+}
+
+.help:hover {
+  color: var(--primary);
+}
+
+/* Short phones: less air under the last button (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .bar {
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+}

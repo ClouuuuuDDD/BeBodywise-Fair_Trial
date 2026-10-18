@@ -1,0 +1,164 @@
+.head {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding-top: 8px;
+}
+
+.h1 {
+  max-width: 230px;
+  font-size: 32px;
+  line-height: 1.08;
+}
+
+.lead {
+  margin: 8px 0 0;
+  max-width: 270px;
+  color: var(--ink-soft);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.mehr {
+  margin-right: -6px;
+}
+
+.roster {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.rosterCell {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  align-content: end;
+}
+
+.plate {
+  padding: 4px 14px;
+  border-radius: 14px;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.plateWorking {
+  background: var(--teal-text);
+  color: var(--surface);
+}
+
+.checkDue {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.statLabel {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.statValue {
+  margin: 6px 0 0;
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.statSub {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.add {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.addEmpty {
+  grid-column: 1 / -1;
+}
+
+.answerTitle {
+  margin: 2px 0 0;
+  color: var(--teal-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.answerLine {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.heart {
+  color: var(--pink);
+}
+
+/* Short phones (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .head {
+    padding-top: 4px;
+  }
+
+  .lead {
+    margin-top: 4px;
+    font-size: 15.5px;
+    line-height: 1.35;
+  }
+
+  .roster {
+    margin-top: 6px;
+  }
+
+  .rosterCell img {
+    width: 58px;
+    height: auto;
+  }
+
+  .checkDue,
+  .stats,
+  .add {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .statValue {
+    font-size: 24px;
+  }
+
+  .statLabel,
+  .statSub {
+    font-size: 14px;
+  }
+}

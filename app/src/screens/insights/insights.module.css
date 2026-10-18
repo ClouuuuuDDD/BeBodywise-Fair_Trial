@@ -1,0 +1,685 @@
+.page {
+  flex: 1 0 auto;
+  background-color: var(--ground);
+  background-image: var(--ground-texture);
+  background-size: var(--ground-texture-size);
+  color: var(--ink);
+  overflow-x: clip;
+}
+
+.inner {
+  display: grid;
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px 48px;
+}
+
+.head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: end;
+}
+
+.mehr {
+  align-self: start;
+}
+
+.headText {
+  min-width: 0;
+}
+
+.brand {
+  margin: 0 0 6px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+}
+
+.h1 {
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 18px;
+}
+
+.sample {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--butter-tint);
+  color: var(--butter-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.kpi,
+.card {
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.kpi {
+  display: grid;
+  gap: 6px;
+  padding: 22px 28px;
+}
+
+.kpi span {
+  color: var(--ink-muted);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kpi b {
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.good {
+  color: var(--teal-text) !important;
+}
+
+.rose {
+  color: var(--rose-text) !important;
+}
+
+.pink {
+  color: var(--pink);
+}
+
+.violet {
+  color: var(--violet);
+}
+
+.card {
+  padding: 28px 34px 30px;
+  min-width: 0;
+}
+
+.h2 {
+  font-size: 28px;
+}
+
+.sub {
+  margin: 4px 0 20px;
+  color: var(--ink-muted);
+  font-size: 16px;
+}
+
+.unavailable {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.cast {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.castCard {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 36px 8px 16px;
+  border-radius: 24px;
+  background: var(--ground);
+  text-align: center;
+}
+
+.castCard b {
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.castCard span:last-child {
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.rib {
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  display: grid;
+  place-items: start center;
+  width: 36px;
+  height: 46px;
+  padding-top: 8px;
+  background: var(--violet);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  color: var(--surface);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 18px;
+}
+
+.bars {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bars b {
+  text-align: right;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.track {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 7px;
+  background: var(--pink);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.table th {
+  padding: 0 10px 12px 0;
+  border-bottom: 2px dashed var(--lilac-line);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: var(--tracking-micro);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 16px 10px 16px 0;
+  border-bottom: 2px dashed var(--lilac-line);
+  color: var(--ink-display);
+  font-weight: 700;
+}
+
+.table td:not(:first-child) {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.hl td {
+  background: var(--tint-rose);
+}
+
+.hl td:first-child {
+  padding-left: 12px;
+}
+
+.signals {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.signals li {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  padding: 18px 0;
+  border-bottom: 2px dashed var(--lilac-line);
+}
+
+.signals li:last-child {
+  border-bottom: 0;
+}
+
+.signals b {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1.05;
+}
+
+.sigHead {
+  margin: 0;
+  color: var(--ink-display);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sigAct {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.footer {
+  margin: 8px 0 0;
+  color: var(--ink-muted);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.back {
+  margin: 0;
+  text-align: center;
+}
+
+.back a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 12px;
+}
+
+@media (max-width: 860px) {
+  .inner {
+    padding: 20px 20px 36px;
+  }
+
+  .head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sample {
+    grid-column: 1 / -1;
+    justify-self: start;
+    white-space: normal;
+  }
+
+  .h1 {
+    font-size: 32px;
+  }
+
+  .kpis {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .kpi {
+    padding: 16px 18px;
+  }
+
+  .kpi b {
+    font-size: 30px;
+  }
+
+  .cast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .two {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 22px 18px;
+  }
+
+  .signals li {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .signals b {
+    font-size: 28px;
+  }
+
+  .bars li {
+    grid-template-columns: 1fr 44px;
+  }
+
+  .bars li .track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* 320 px phones: tighter cells so the pattern table fits without sideways scrolling. */
+@media (max-width: 380px) {
+  .table {
+    font-size: 15px;
+  }
+
+  .table th {
+    padding-right: 6px;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .table td {
+    padding-right: 6px;
+  }
+
+  .hl td:first-child {
+    padding-left: 8px;
+  }
+}
+
+/* Phone tabs (docs/fit-plan.md): hidden on desktop, where the whole dashboard shows. */
+.tabs {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab {
+    flex: none;
+    min-height: var(--tap-min);
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow: var(--shadow-chip);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-press);
+    cursor: pointer;
+  }
+
+  .tab[aria-pressed='true'] {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* One section at a time. */
+  .page[data-tab] [data-section] {
+    display: none;
+  }
+
+  .page[data-tab='numbers'] [data-section='numbers'],
+  .page[data-tab='shelf'] [data-section='shelf'],
+  .page[data-tab='stops'] [data-section='stops'],
+  .page[data-tab='outcomes'] [data-section='outcomes'],
+  .page[data-tab='act'] [data-section='act'] {
+    display: revert;
+  }
+
+  .page[data-tab='numbers'] .kpis {
+    display: grid;
+  }
+
+  .two {
+    gap: 0;
+  }
+
+  /* Phones: a smaller header so each tab fits one screen. */
+  .inner {
+    padding: 10px 16px 16px;
+  }
+
+  .head {
+    gap: 6px 12px;
+  }
+
+  .mehr {
+    width: 62px;
+    height: auto;
+  }
+
+  .h1 {
+    font-size: 25px;
+  }
+
+  .lead {
+    font-size: 14.5px;
+    line-height: 1.35;
+  }
+
+  .card {
+    padding: 14px 14px;
+  }
+
+  .cast {
+    gap: 8px;
+  }
+
+  .castCard img {
+    width: 52px;
+    height: auto;
+  }
+
+  .footer,
+  .back {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+}
+
+/* Phones: each tab's section fits one screen (docs/fit-plan.md). */
+@media (max-width: 860px) {
+  .brand {
+    font-size: 11px;
+  }
+
+  .mehr {
+    width: 48px;
+  }
+
+  .h1 {
+    font-size: 23px;
+  }
+
+  .lead {
+    font-size: 13.5px;
+  }
+
+  .sample {
+    padding: 4px 10px;
+    font-size: 12.5px;
+  }
+
+  .sub {
+    margin-top: 2px;
+    font-size: 13.5px;
+  }
+
+  .cast {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .castCard {
+    gap: 2px;
+    padding: 24px 4px 8px;
+  }
+
+  .castCard img {
+    width: 40px;
+  }
+
+  .castCard b {
+    font-size: 21px;
+  }
+
+  .castCard span:last-child {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .rib {
+    width: 26px;
+    height: 32px;
+    padding-top: 4px;
+    font-size: 12px;
+  }
+
+  .bars {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .bars li {
+    gap: 4px 10px;
+    font-size: 14px;
+  }
+
+  .bars b {
+    font-size: 15px;
+  }
+
+  .track {
+    height: 10px;
+  }
+
+  .table {
+    font-size: 13.5px;
+  }
+
+  .table th {
+    padding: 0 6px 8px 0;
+    font-size: 10.5px;
+  }
+
+  .table td {
+    padding: 8px 6px 8px 0;
+  }
+
+  /* The three signals slide sideways, one card each, the next peeking in. */
+  .signals {
+    display: flex;
+    gap: 10px;
+    margin: 10px -14px 0;
+    padding: 0 14px 4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .signals li {
+    flex: 0 0 84%;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 12px;
+    border: 0;
+    border-radius: 18px;
+    background: var(--surface-muted);
+    scroll-snap-align: start;
+  }
+
+  .signals li:last-child {
+    padding: 12px;
+  }
+
+  .signals b {
+    font-size: 26px;
+  }
+
+  .sigHead {
+    font-size: 15.5px;
+  }
+
+  .sigAct {
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 860px) {
+  .inner {
+    gap: 8px;
+  }
+
+  .tabs {
+    margin: 4px 0 2px;
+  }
+
+  .footer {
+    margin: 4px 0 0;
+    font-size: 12px;
+  }
+
+  .back {
+    margin: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .cast {
+    gap: 6px;
+  }
+
+  .castCard {
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 860px) {
+  .castCard {
+    padding: 16px 4px 6px;
+  }
+
+  .rib {
+    height: 26px;
+    padding-top: 2px;
+  }
+}

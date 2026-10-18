@@ -1,0 +1,334 @@
+.title {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 30px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+
+.doctorFirst {
+  padding-top: 4px;
+}
+
+.noPick {
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-row);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.best {
+  position: relative;
+  margin-top: 10px;
+  padding: 16px 16px 14px;
+  border-radius: 26px;
+}
+
+.bestHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Clear of the "Best for you" ribbon. */
+  padding-right: 66px;
+}
+
+.bestText {
+  min-width: 0;
+}
+
+.bestName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.05;
+  color: var(--ink-display);
+}
+
+.bestMeta {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--violet);
+}
+
+.why {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1.5px dashed var(--lilac-line);
+  list-style: none;
+}
+
+.why li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.why svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--teal-deep);
+}
+
+.addOn {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-display);
+}
+
+.strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 16px;
+  border-radius: 16px;
+  background: var(--butter-tint);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--butter-text);
+}
+
+.strip b {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--ink-display);
+}
+
+.costNote {
+  margin: 6px 4px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.skin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.skinLine {
+  margin: 0;
+  font-weight: 800;
+  font-size: 14.5px;
+  color: var(--ink-display);
+}
+
+.habit {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.hormone {
+  border-radius: 18px;
+  background: var(--tint-lilac);
+  overflow: hidden;
+}
+
+.hormoneButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 14px 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-display);
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hormoneButton span {
+  flex: 1;
+}
+
+.hormoneButton svg {
+  flex: none;
+  transition: transform 150ms linear;
+}
+
+.open {
+  transform: rotate(90deg);
+}
+
+.hormoneBody {
+  padding: 0 16px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.hormoneBody p {
+  margin: 0 0 4px;
+}
+
+.others {
+  margin: 0;
+  padding: 14px 4px 6px;
+  font-size: 16px;
+}
+
+.range {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rangeRow {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 12px 7px 6px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgba(1, 39, 73, 0.05);
+}
+
+.rangeRow > :first-child {
+  justify-self: center;
+}
+
+.rangeName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1.1;
+  color: var(--ink-display);
+}
+
+.rangeLine {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink-muted);
+}
+
+.rangePrice {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.note {
+  padding-top: 10px;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.why2 {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+
+.preg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.demoNote {
+  margin: 0 0 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--tint-lilac);
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.othersToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.othersToggle svg {
+  transform: rotate(90deg);
+  transition: transform var(--dur-select) var(--ease-out);
+}
+
+.othersToggle svg.open {
+  transform: rotate(-90deg);
+}
+
+.range[hidden] {
+  display: none;
+}
+
+/* Short phones: the whole match fits above the buy buttons (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .best {
+    margin-top: 8px;
+    padding: 12px 14px 10px;
+  }
+
+  .why {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .strip {
+    margin-top: 8px;
+    padding: 6px 14px;
+  }
+
+  .costNote {
+    margin-top: 4px;
+  }
+
+  .skin {
+    gap: 4px;
+    padding-top: 8px;
+  }
+
+  .others {
+    padding: 6px 0 0;
+  }
+
+  .demoNote {
+    margin-bottom: 4px;
+    padding: 4px 10px;
+  }
+}

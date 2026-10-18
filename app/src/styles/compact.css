@@ -1,0 +1,24 @@
+/*
+ * Short phones (OnePlus Nord 4, Pixel or iPhone with browser toolbars showing): about 760-880 px of visible
+ * height. Tighter spacing, smaller headings and buttons so every screen fits without scrolling
+ * (docs/fit-plan.md, G4). Art shrinks in DrMehr.module.css and Mascot.module.css. Nothing is hidden here.
+ */
+@media (max-height: 880px) {
+  :root {
+    --pill-height: 52px;
+    --tile-height: 56px;
+    --space-5: 18px;
+    --space-6: 24px;
+    --space-7: 36px;
+    --fs-hero: 34px;
+    --fs-title: 25px;
+    --fs-numeral: 46px;
+    --camera-max-h: 40dvh;
+  }
+
+  /* Page headings, except those that set their own size (the verdict word, a product name). */
+  .app-column:not(.app-column--wide) h1:not([data-fit='keep']) {
+    font-size: 27px;
+    line-height: 1.08;
+  }
+}

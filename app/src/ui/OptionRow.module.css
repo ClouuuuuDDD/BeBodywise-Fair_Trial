@@ -1,0 +1,145 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 8px;
+}
+
+.opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 0 14px 0 18px;
+  border: 0;
+  border-radius: var(--radius-tile);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-tile);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(1, 39, 73, 0.04), 0 8px 18px rgba(1, 39, 73, 0.07);
+  transition:
+    box-shadow var(--dur-select) var(--ease-out),
+    background-color var(--dur-select) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.opt:hover {
+  box-shadow: 0 2px 4px rgba(1, 39, 73, 0.05), 0 12px 24px rgba(1, 39, 73, 0.12);
+}
+
+.opt:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.on {
+  background: var(--tint-blue);
+  outline: var(--keyline-width) solid var(--primary);
+  outline-offset: -3px;
+}
+
+/* Keep the focus ring visible on top of the selected outline. */
+.opt:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.rad {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--grey-cast); /* 3:1 on white: the radio is a control boundary */
+  background: var(--surface);
+}
+
+.on .rad {
+  border: 7px solid var(--primary);
+}
+
+.label {
+  min-width: 0;
+  flex: 1;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.steps {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.steps i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tint-lilac);
+}
+
+.steps i.f {
+  background: var(--ink-display);
+}
+
+.segment {
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 8px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  text-align: center;
+  box-shadow: var(--shadow-chip);
+}
+
+.segment .label {
+  flex: none;
+}
+
+.segment.on {
+  color: var(--ink-display);
+}
+
+.pop {
+  animation: pop var(--dur-select) var(--ease-out);
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt,
+  .rad {
+    transition: none;
+  }
+
+  .pop {
+    animation: none;
+  }
+}

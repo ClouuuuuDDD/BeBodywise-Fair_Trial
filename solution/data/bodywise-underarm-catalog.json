@@ -1,0 +1,140 @@
+{
+  "_about": "Be Bodywise products relevant to underarm darkness, with ingredient lists copied from bebodywise.com product pages scraped 17 Oct 2026 (raw pages in research/raw/apps/product-*.md). Prices are list prices on that date. Used by the shelf check (pairing rules) and the product pick. Re-scrape before the demo; prices and formulas change.",
+  "scraped": "2026-10-17",
+  "severity_scale": {
+    "_note": "Bodywise's own selector on these pages: Odour/Mild, Odour/Moderate, Odour/Severe (3+ shades darker than skin tone).",
+    "levels": ["same", "mild", "moderate", "severe"],
+    "question": "Next to your inner arm, your underarm skin looks:",
+    "answers": {
+      "same": "About the same",
+      "mild": "A little darker",
+      "moderate": "Clearly darker",
+      "severe": "Much darker, 3 or more shades"
+    }
+  },
+  "products": [
+    {
+      "id": "bw-rollon-4",
+      "name": "4% AHA BHA Underarm Roll On",
+      "url": "https://bebodywise.com/product/4-aha-bha-underarm-roll-on",
+      "price_inr": { "50ml": 329, "mrp_50ml": 349 },
+      "sizes_ml": [50, 75],
+      "fragrances": ["Flora", "Watermelon", "Oudh", "Aqua", "No Fragrance"],
+      "mascot": "rollon",
+      "for": "Odour and mild pigmentation",
+      "actives": [
+        { "inci": "Lactic Acid", "pct": 2, "class": "aha" },
+        { "inci": "Salicylic Acid", "pct": 1, "class": "bha" },
+        { "inci": "Mandelic Acid", "pct": 1, "class": "aha" },
+        { "inci": "Alpha Arbutin", "class": "brightener" }
+      ],
+      "inci": "Aqua, Propylene Glycol, Butyrospermum Parkii (Shea) Butter, Lactic Acid, Sodium Lactate, Glycerin, Lysolecithin (and) Sclerotium Gum (and) Xanthan Gum (and) Pullulan, Mandelic Acid, Salicylic Acid, Aqua (and) Sodium Benzoate (and) Potassium Sorbate, Polysorbate 20, Alpha Arbutin, Tocopheryl Acetate, Silica, Perfume",
+      "inci_note": "The No Fragrance variant lists the same formula without Perfume (see the kit page).",
+      "free_of": ["Alcohol", "Aluminium", "Paraben", "Silicone", "Sulfate"],
+      "area": ["underarm"],
+      "when": "daily, on clean dry skin; can be used twice a day",
+      "doubles_as_deodorant": true,
+      "after_shave_wait": "10-15 minutes (Bodywise blog)",
+      "after_wax_wait": "6-12 hours (Bodywise FAQ)",
+      "judge_after": "3 months (Bodywise), first fair check at 8 weeks (Fair Trial)",
+      "brand_claims": "113 women, 3 months: 88% noticed reduction of dark underarms; 95% felt fresh through the day",
+      "age": "18+"
+    },
+    {
+      "id": "bw-rollon-6",
+      "name": "6% AHA BHA Underarm Roll On",
+      "url": "https://bebodywise.com/product/6-aha-bha-underarm-roll-on",
+      "price_inr": { "50ml": 399 },
+      "sizes_ml": [50, 75],
+      "fragrances": ["Flora", "Aqua", "Watermelon", "Fragrance Free"],
+      "mascot": "rollon-strong",
+      "for": "Odour and stubborn pigmentation; Bodywise calls it its most effective roll-on",
+      "actives": [
+        { "inci": "Lactic Acid", "pct": 4, "class": "aha" },
+        { "inci": "Salicylic Acid", "pct": 1, "class": "bha" },
+        { "inci": "Kojic Acid", "pct": 1, "class": "brightener" },
+        { "inci": "Mandelic Acid", "pct": 1, "class": "aha" },
+        { "inci": "Alpha Arbutin", "class": "brightener" },
+        { "inci": "Morus Alba (Mulberry) Extract", "class": "brightener" }
+      ],
+      "inci": "Aqua, Lactic Acid, Propylene Glycol, Butyrospermum Parkii (Shea) Butter, Glycerin, Perfume, Aqua (and) Sodium Benzoate (and) Potassium Sorbate, Kojic Acid, Mandelic Acid, Salicylic Acid, Silica, Alpha Arbutin, Morus Alba (Mulberry) Extract, PEG-40 Hydrogenated Castor Oil, Tocopheryl Acetate, Acacia Senegal Gum (and) Xanthan Gum, Polysorbate 20, Xanthan Gum, Sodium lactate",
+      "free_of": ["Paraben", "Aluminium-based antiperspirant", "Silicone", "Sulfate"],
+      "area": ["underarm"],
+      "when": "daily, on clean skin; up to twice a day",
+      "doubles_as_deodorant": true,
+      "after_wax_wait": "6-12 hours (Bodywise FAQ)",
+      "warnings": ["Do not apply on broken or irritated skin"],
+      "judge_after": "3 months (Bodywise)"
+    },
+    {
+      "id": "bw-repair-cream",
+      "name": "Pigmentation Repair Cream",
+      "url": "https://bebodywise.com/product/pigmentation-repair-cream",
+      "price_inr": { "single": 549, "mrp": 599 },
+      "mascot": "cream-jar",
+      "for": "Dark patches on body folds: neck, knees, elbows, underarms, thighs",
+      "actives": [
+        { "inci": "Lactic Acid", "pct": 2.5, "class": "aha" },
+        { "inci": "Urea", "pct": 2, "class": "humectant-keratolytic" },
+        { "inci": "Niacinamide", "class": "brightener" },
+        { "inci": "Kojic Acid dipalmitate", "class": "brightener" },
+        { "inci": "Retinol", "pct": 0.1, "class": "retinoid" }
+      ],
+      "inci": "Aqua, Cetostearyl Alcohol, Caprylic/Capric Triglyceride, Propylene Glycol, Cetearyl Alcohol & Ceteareth-20, Lactic Acid, Glycerin, PEG-100 Stearate (and) Glyceryl Stearate, Urea, Sorbitan Monostearate, Niacinamide, Sodium hydroxide, Kojic Acid dipalmitate, Phenoxyethanol, Ethylhexylglycerin, Fragrance, Carbomer, Disodium Edetate, Retinol",
+      "free_of": ["Paraben", "Silicone", "Sulfate", "Alcohol (drying)", "Mineral oil"],
+      "area": ["underarm", "neck", "knees", "elbows", "thighs"],
+      "when": "pea-sized amount on clean skin; the kit uses it at night",
+      "doubles_as_deodorant": false,
+      "not_for": ["face"],
+      "judge_after": "3 months (Bodywise)",
+      "flags": ["contains retinol: ask a doctor if pregnant or trying", "contains fragrance"]
+    },
+    {
+      "id": "bw-kit-4",
+      "name": "Underarm Pigmentation Kit - No Fragrance",
+      "url": "https://bebodywise.com/product/underarm-pigmentation-kit-no-fragrance",
+      "price_inr": { "kit": 799, "mrp": 948 },
+      "mascot": ["rollon", "cream-jar"],
+      "for": "Odour and severe pigmentation (3+ shades darker)",
+      "contains": ["bw-rollon-4 (No Fragrance)", "bw-repair-cream"],
+      "routine": { "morning": "bw-rollon-4", "night": "bw-repair-cream" },
+      "flags": ["'No Fragrance' refers to the roll-on; the cream's listed ingredients include Fragrance", "contains retinol"],
+      "page_claims": ["No Side Effects", "Breast Feeding Safe"],
+      "judge_after": "3 months (Bodywise)"
+    },
+    {
+      "id": "bw-kit-6",
+      "name": "Advanced Underarm Pigmentation Kit",
+      "url": "https://bebodywise.com/product/advanced-underarm-pigmentation-kit",
+      "price_inr": { "kit": 859, "mrp": 998 },
+      "mascot": ["rollon-strong", "cream-jar"],
+      "for": "Odour and severe pigmentation, stronger formula",
+      "contains": ["bw-rollon-6", "bw-repair-cream"],
+      "routine": { "morning": "bw-rollon-6", "night": "bw-repair-cream" },
+      "flags": ["contains retinol", "roll-on contains Perfume"],
+      "judge_after": "3 months (Bodywise)"
+    }
+  ],
+  "related_not_for_underarm_darkness": [
+    {
+      "id": "bw-niacinamide-lotion",
+      "name": "10% Niacinamide Body Lotion",
+      "url": "https://bebodywise.com/product/niacinamide-body-lotion",
+      "price_inr": { "200ml": 399 },
+      "mascot": "lotion",
+      "inci": "Aqua, Niacinamide, Propylene Glycol, Aloe Vera Extract, Glycerin, 3-O-Ethyl Ascorbic Acid, Vitamin E, Polyacrylamide & C13-14 Isoparaffin & Laureth-7, Phenoxyethanol (and) Ethylhexylglycerin, Almond Oil, Coconut Oil, Fragrance, Grapeseed Oil, Polyacrylate Crosspolymer-6",
+      "brand_says": "An everyday whole-body lotion, not a spot treatment; unsuitable for long-standing hyperpigmentation.",
+      "pairs_with_rollon": "fine"
+    },
+    {
+      "id": "bw-glycolic-stick",
+      "name": "7% Glycolic Acid Exfoliating Body Stick",
+      "url": "https://bebodywise.com/product/glycolic-acid-stick",
+      "price_inr": { "30g": 599 },
+      "mascot": "toner",
+      "inci_short": "7% Glycolic Acid, Salicylic Acid, Shea Butter (full list on the kit page)",
+      "brand_says": "For strawberry skin, bumps and ingrown hair on elbows, knees, legs. Start 2-3 times a week. Sunscreen after morning use.",
+      "pairs_with_rollon": "pick-one-on-underarms"
+    }
+  ]
+}

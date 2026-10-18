@@ -1,0 +1,236 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 24px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headText {
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+}
+
+.nameInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid var(--lilac-line);
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink-display);
+}
+
+.meta {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ground);
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.active {
+  font-weight: 800;
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.editChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 10px;
+  border-radius: 999px;
+  background: var(--ground);
+}
+
+.editChip input {
+  min-width: 60px;
+  max-width: 200px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.editChip button,
+.addRow button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.addRow input {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--lilac-line);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-weight: 600;
+}
+
+.addRow button {
+  width: 44px;
+  height: 44px;
+  background: var(--primary);
+  color: #fff;
+}
+
+.keys {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 0 0;
+  border-top: 1.5px dashed var(--lilac-line);
+  list-style: none;
+}
+
+.key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.key i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.q {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.block .chipRow {
+  padding-top: 0;
+}
+
+.sweat {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.needHint {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+/* Short phones: the read, where, when and the button fit one screen (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .card {
+    gap: 8px;
+    margin-top: 6px;
+    padding: 12px;
+  }
+
+  .name {
+    font-size: 22px;
+  }
+
+  .chip {
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+
+  .keys {
+    gap: 2px;
+    padding-top: 6px;
+  }
+
+  .key {
+    font-size: 12.5px;
+  }
+
+  .block {
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  .q {
+    font-size: 16px;
+  }
+
+  .chipRow {
+    gap: 6px;
+  }
+
+  .needHint {
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+}

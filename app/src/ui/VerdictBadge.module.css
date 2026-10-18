@@ -1,0 +1,320 @@
+.verdict {
+  /* Bleed to the screen edges inside AppShell's gutter. */
+  margin-inline: calc(var(--gutter) * -1);
+  display: flex;
+  flex-direction: column;
+  --stage: var(--tint-mint);
+  --ros-a: var(--rosette-working-a);
+  --ros-b: var(--rosette-working-b);
+  --ros-ring: var(--stage-mint-ring);
+  --head: var(--teal-deep);
+}
+
+.working {
+  --stage: var(--tint-mint);
+  --head: var(--teal-deep);
+}
+
+.not-yet {
+  --stage: var(--tint-blue);
+  --ros-a: var(--rosette-not-yet-a);
+  --ros-b: var(--rosette-not-yet-b);
+  --ros-ring: var(--rosette-not-yet-ring);
+  --head: var(--primary-press);
+}
+
+.cant-call {
+  --stage: var(--tint-lilac);
+  --ros-a: var(--rosette-cant-call-a);
+  --ros-b: var(--rosette-cant-call-b);
+  --ros-ring: var(--rosette-cant-call-ring);
+  --head: var(--violet);
+}
+
+.not-for-you {
+  --head: var(--ink-display);
+}
+
+.see-doctor {
+  --stage: var(--tint-rose);
+  --head: var(--rose-text);
+}
+
+.hero {
+  position: relative;
+  flex: none;
+}
+
+.heroRosette {
+  height: 420px;
+  background: var(--stage);
+  border-radius: 0 0 40px 40px;
+}
+
+.heroPlain {
+  height: 300px;
+  margin-top: 44px; /* clears the overlaid header (38 px) + 6 */
+}
+
+.see-doctor .heroPlain {
+  height: 330px;
+  margin-top: 0;
+  background: var(--stage);
+  border-radius: 0 0 40px 40px;
+}
+
+.ros {
+  position: absolute;
+  left: 50%;
+  top: 84px;
+  width: 230px;
+  height: 230px;
+  margin-left: -115px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(var(--ros-a) 0deg 9deg, var(--ros-b) 9deg 18deg);
+  animation: spin-in 600ms var(--ease-out) both;
+}
+
+.ros::after {
+  content: '';
+  position: absolute;
+  inset: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 4px var(--ros-ring);
+}
+
+.tailL,
+.tailR {
+  position: absolute;
+  top: 290px;
+  width: 46px;
+  height: 110px;
+  background: var(--ros-a);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+}
+
+.tailL {
+  left: calc(50% - 57px);
+  transform: rotate(12deg);
+}
+
+.tailR {
+  left: calc(50% + 11px);
+  transform: rotate(-12deg);
+}
+
+.artMascot {
+  position: absolute;
+  left: 50%;
+  top: 194px; /* rosette centre is 199; the canvas sits the art 5 px high */
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  animation: settle 400ms var(--ease-out) 200ms both;
+}
+
+.retire {
+  position: absolute;
+  left: 34px;
+  top: 46px;
+  z-index: 1;
+  animation: desaturate var(--dur-retire) ease-out 200ms both;
+}
+
+.mehrRight {
+  position: absolute;
+  right: 6px;
+  top: 30px;
+  z-index: 2;
+}
+
+.mehrCentre {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.headline {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--head);
+}
+
+.headCentred {
+  align-self: center;
+  margin-top: 6px;
+  padding: 6px 20px 0;
+  border-radius: 20px;
+  background: var(--ground);
+  font-size: 60px;
+  line-height: 0.95;
+  text-align: center;
+}
+
+.headLeft {
+  padding: 12px 20px 0;
+  font-size: 54px;
+  line-height: 0.95;
+}
+
+.sub {
+  margin: 12px 0 0;
+  padding-inline: 20px;
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.subCentred {
+  margin-top: 12px;
+  font-size: 16px;
+  text-align: center;
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-inline: 20px;
+}
+
+.why {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.tick {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--tint-mint);
+  color: var(--teal-text);
+}
+
+.dash {
+  flex: none;
+  width: 16px;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: var(--grey-cast);
+}
+
+@keyframes spin-in {
+  from {
+    opacity: 0;
+    transform: rotate(-40deg) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes desaturate {
+  from {
+    filter: none;
+    opacity: 1;
+  }
+  to {
+    filter: grayscale(1);
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ros,
+  .artMascot,
+  .retire {
+    animation: fade var(--dur-fade) linear both;
+  }
+
+  .artMascot {
+    transform: translate(-50%, -50%);
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Short phones: the whole scene scales down together (zoom keeps layout and positions in proportion), so
+   the verdict, its reasons and Continue fit one screen (docs/fit-plan.md). */
+@media (max-height: 880px) {
+  .heroRosette {
+    zoom: 0.6;
+  }
+
+  .heroPlain {
+    zoom: 0.4;
+    margin-top: 110px; /* 44 px after the zoom */
+  }
+
+  .see-doctor .heroPlain {
+    margin-top: 0;
+  }
+
+  /* Characters inside the scene keep their size relative to it (the zoom already shrinks them). */
+  .hero img {
+    width: var(--art-w);
+    height: auto;
+  }
+
+  .headCentred {
+    margin-top: 2px;
+    padding-top: 4px;
+    font-size: 46px;
+  }
+
+  .headLeft {
+    padding-top: 4px;
+    font-size: 40px;
+  }
+
+  .sub,
+  .subCentred {
+    margin-top: 4px;
+    font-size: 14.5px;
+  }
+
+  .reasons {
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .why {
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.28;
+  }
+}

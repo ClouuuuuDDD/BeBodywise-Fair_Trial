@@ -1,0 +1,92 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  border: 0;
+  font-family: var(--font-body);
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: var(--shadow-chip);
+  transition:
+    background-color var(--dur-select) var(--ease-out),
+    color var(--dur-select) var(--ease-out),
+    box-shadow var(--dur-select) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.pill {
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+}
+
+.compact {
+  min-height: 40px;
+}
+
+.pill.on {
+  background: var(--primary);
+  color: #fff;
+}
+
+.card {
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 14px 8px 10px;
+  border-radius: var(--radius-card-sm);
+  font-size: 15px;
+  text-align: left;
+  box-shadow: var(--shadow-row);
+}
+
+.card.on {
+  background: var(--tint-blue);
+  color: var(--ink-display);
+  outline: var(--keyline-width) solid var(--primary);
+  outline-offset: -3px;
+}
+
+.card:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.text {
+  min-width: 0;
+  flex: 1;
+}
+
+.pill .text {
+  flex: none;
+}
+
+.tick {
+  flex: none;
+}
+
+.card .tick {
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}
+
+/* Short phones (docs/fit-plan.md). Still at least 36 px tall, above the 24 px target minimum. */
+@media (max-height: 880px) {
+  .pill {
+    padding: 0 13px;
+    font-size: 14.5px;
+  }
+}

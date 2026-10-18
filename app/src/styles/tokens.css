@@ -1,0 +1,159 @@
+/*
+ * Fair Trial design tokens (code copy). Variable names and values mirror
+ * engineering/handoff/tokens.css (P1; DESIGN.md sections 3-8 reconciled with the canvas).
+ * X1 reconciles the two; if they differ, the hand-off file wins on values, and changes to names
+ * go through E1. The hand-off file's "base hooks" (body, focus, selection) live in global.css.
+ * Screens use these variables only, never raw hex values. Colours come from Be Bodywise's public tokens.
+ */
+
+:root {
+  /* ---------- Ground and surfaces ---------- */
+  --ground: #F6F2FF;            /* app background (lavender). Never cream. */
+  --ground-dot: #E3D6FF;        /* faint sprinkle dots on the ground */
+  --ground-2: #FFF0F7;          /* blush stage for Dr. Mehr moments */
+  --surface: #FFFFFF;           /* cards, sheets */
+  --surface-muted: #F1EEF8;     /* inactive tiles, empty photo slots */
+  --keyline: #FFFFFF;           /* 3px outline around cards and characters */
+
+  /* ---------- Ink ---------- */
+  --ink-display: #012749;       /* headlines, big numerals (Bodywise cyan-9) */
+  --ink: #212121;               /* body text */
+  --ink-soft: #3D3A52;          /* lead lines, fact pills (canvas) */
+  --ink-muted: #5B5670;         /* captions, micro labels, concept label (canvas) */
+  --ink-2: #525252;             /* secondary text (DESIGN.md) */
+  --line: #E3E3E3;              /* hairlines */
+  --lilac-line: #D4BBFF;        /* dashed dividers, plan code tag border */
+
+  /* ---------- Brand and roles ---------- */
+  --primary: #005995;           /* primary pill, links, selected, roll-on ribbon */
+  --primary-press: #004A7C;     /* pressed (keeps white text legible) */
+  --violet: #6929C4;            /* Dr. Mehr, bubble tail, plan code, insights ribbons */
+  --teal: #198775;              /* fit, Working, fine together (never white body text on it) */
+  --teal-text: #0F6E5E;         /* teal text and fills that carry white text */
+  --teal-deep: #0F5A4D;         /* Working rosette, deep teal text (canvas) */
+  --pink: #D02670;              /* toner ribbon, keep-apart fences, pick one here */
+  --butter: #FDDC69;            /* highlights, lotion/sunscreen ribbons, sparkles */
+  --butter-tint: #FFF3C4;       /* butter chips, sample-data tag */
+  --butter-text: #5E4300;       /* ink on butter tint (canvas) */
+  --sky: #4292C7;               /* serum ribbon, Not yet rosette; decorative only */
+  --orange: #EB6200;            /* hair removal cream ribbon */
+  --orange-text: #BA4E00;       /* orange text on white (canvas) */
+  --retinol: #A56EFF;           /* retinol ribbon */
+  --grey-cast: #8D8D8D;         /* razor ribbon, retired text */
+
+  /* ---------- Tints and semantic stages ---------- */
+  --tint-blue: #E6F5FF;         /* selected option fill */
+  --tint-mint: #E7F3F1;         /* Working stage, judge-by chip, privacy chip */
+  --tint-peach: #FFF2E8;        /* Pause / amber stage */
+  --peach-text: #8A3800;
+  --tint-rose: #FFF0F7;         /* Stop / See a doctor stage */
+  --rose-text: #9F1853;
+  --tint-lilac: #EDE4FF;        /* Can't call it stage, hormone note card */
+
+  /* ---------- Shelf answer tones (ingredient-rules.json "answers") ---------- */
+  --answer-fine-bg: var(--tint-mint);      --answer-fine-fg: var(--teal-text);
+  --answer-split-bg: var(--tint-blue);     --answer-split-fg: var(--primary);
+  --answer-pick-bg: #FCE8F1;               --answer-pick-fg: var(--pink);
+  --answer-wait-bg: var(--butter-tint);    --answer-wait-fg: var(--butter-text);
+  --answer-stop-bg: var(--tint-rose);      --answer-stop-fg: var(--rose-text);
+
+  /* ---------- Traffic light (reaction desk) ---------- */
+  --light-green-bg: var(--tint-mint);  --light-green-fg: var(--teal-text);
+  --light-amber-bg: var(--tint-peach); --light-amber-fg: var(--peach-text);
+  --light-red-bg: var(--tint-rose);    --light-red-fg: var(--rose-text);
+
+  /* ---------- Verdict rosettes ---------- */
+  --verdict-working: var(--teal);
+  --verdict-not-yet: var(--sky);
+  --verdict-cant-call: #B48CFF;
+  --verdict-not-for-you: var(--grey-cast);   /* mascot retires in grayscale */
+  --verdict-see-doctor: var(--rose-text);
+
+  /* ---------- Use-day dots ---------- */
+  --dot-used: var(--primary);
+  --dot-paused: #C6C6C6;
+  --dot-reaction: var(--orange-text);   /* amber ring */
+  --dot-future: var(--ground-dot);
+
+  /* ---------- Typography ---------- */
+  --font-display: "Baloo 2", ui-rounded, system-ui, sans-serif;  /* headlines, plates, numerals, pills */
+  --font-body: "Nunito", ui-rounded, system-ui, sans-serif;      /* everything else */
+  --fs-numeral: 56px;
+  --fs-hero: 40px;
+  --fs-title: 28px;
+  --fs-card-title: 20px;
+  --fs-body: 16px;
+  --fs-tile: 17px;
+  --fs-chip: 14px;
+  --fs-micro: 12px;             /* uppercase, letter-spacing .06em */
+  --lh-display: 1.15;
+  --lh-body: 1.5;
+  --tracking-micro: 0.06em;
+  --fw-body: 400;
+  --fw-body-strong: 700;
+  --fw-display: 800;
+
+  /* ---------- Spacing (8px grid) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --gutter: 20px;
+  --content-max: 480px;
+  --design-width: 390px;
+
+  /* ---------- Radius ---------- */
+  --radius-card: 28px;          /* canvas hero cards (DESIGN.md says 24) */
+  --radius-card-sm: 22px;       /* rows and secondary cards */
+  --radius-tile: 20px;          /* choice tiles */
+  --radius-plate: 14px;         /* name plates */
+  --radius-chip: 10px;
+  --radius-bubble: 6px 20px 20px 20px; /* doctor speech bubble */
+  --radius-pill: 999px;
+
+  /* ---------- Sizes ---------- */
+  --pill-height: 60px;          /* primary pill (canvas; DESIGN.md says 56) */
+  --tile-height: 64px;
+  --tap-min: 44px;
+  --keyline-width: 3px;
+  --keyline-active: 4px;
+  --focus-ring: 3px solid var(--primary);
+  --focus-offset: 2px;
+
+  /* ---------- Elevation ("printed sticker") ---------- */
+  --shadow-card: 0 2px 4px rgba(1, 39, 73, .05), 0 16px 34px rgba(1, 39, 73, .11);
+  --shadow-row: 0 2px 4px rgba(1, 39, 73, .04), 0 10px 22px rgba(1, 39, 73, .08);
+  --shadow-chip: 0 2px 6px rgba(1, 39, 73, .06);
+  --shadow-pill: 0 3px 6px rgba(1, 39, 73, .10), 0 12px 24px rgba(1, 39, 73, .18);
+
+  /* ---------- Ground texture ---------- */
+  --ground-texture: radial-gradient(var(--ground-dot) 1.2px, transparent 1.6px);
+  --ground-texture-size: 22px 22px;
+
+  /* ---------- UI kit additions (app/src/ui; not in the hand-off file, values measured from the canvas) ---------- */
+  --mint-body: #0B4A3E;         /* body text on the mint stage */
+  --peach-body: #5E2900;        /* body text on the peach stage (13 Reaction answer) */
+  --rose-body: #6E1038;         /* body text on the rose stage */
+  --stage-mint-ring: #DDF0EC;   /* inner ring of the Working rosette */
+  --rosette-working-a: #198775;     --rosette-working-b: #2BA38E;
+  --rosette-not-yet-a: #4292C7;     --rosette-not-yet-b: #5BA6D6;     --rosette-not-yet-ring: #D6EAF7;
+  --rosette-cant-call-a: #B48CFF;   --rosette-cant-call-b: #C6A6FF;   --rosette-cant-call-ring: #E4D6FF;
+  --scrim: rgba(1, 39, 73, .45);    /* sheet backdrop */
+
+  /* ---------- Motion (DESIGN.md section 8; springs in Framer Motion) ---------- */
+  --dur-select: 250ms;          /* bounce 1 -> 1.08 -> 1, stiffness 500, damping 15 */
+  --dur-retire: 600ms;          /* Not for you desaturate */
+  --dur-fade: 150ms;            /* reduced-motion replacement for everything */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --retired-filter: grayscale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-select: 150ms;
+    --dur-retire: 150ms;
+  }
+}

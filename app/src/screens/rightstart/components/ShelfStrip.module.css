@@ -1,0 +1,53 @@
+.plank {
+  position: relative;
+  height: 96px;
+  margin-top: 12px;
+}
+
+.board {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  border-radius: 8px;
+  background: #d9c6ff;
+}
+
+.slot {
+  position: absolute;
+  bottom: 8px;
+}
+
+.drop {
+  animation: drop-in 520ms var(--ease-out) both;
+}
+
+@keyframes drop-in {
+  0% {
+    transform: translateY(-80px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop {
+    animation: fade 150ms linear both;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

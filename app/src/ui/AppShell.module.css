@@ -1,0 +1,40 @@
+.shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Fills what the column leaves after any demo or example bar (RootLayout). */
+  flex: 1 0 auto;
+  /* Bleed out of RootLayout's gutter so stages and the ground texture reach the column edge. */
+  margin-inline: calc(var(--gutter) * -1);
+  overflow-x: clip;
+  background-color: var(--ground);
+  background-image: var(--ground-texture);
+  background-size: var(--ground-texture-size);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.45; /* canvas screens run 1.45 */
+}
+
+.plain {
+  background-image: none;
+}
+
+.headWrap {
+  flex: none;
+}
+
+.overlay {
+  /* Zero-height wrapper: the header overflows downward over the first block, below any banner. */
+  position: relative;
+  z-index: 5;
+  height: 0;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-inline: var(--gutter);
+}

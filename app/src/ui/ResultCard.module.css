@@ -1,0 +1,91 @@
+.card {
+  position: relative;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.lg {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.sm {
+  border-radius: var(--radius-card-sm);
+  box-shadow: var(--shadow-row);
+}
+
+.pad-md {
+  padding: 22px 18px 18px;
+}
+
+.pad-sm {
+  padding: 14px 16px;
+}
+
+.pad-none {
+  padding: 0;
+}
+
+.tone-white {
+  background: var(--surface);
+}
+
+.tone-mint {
+  background: var(--tint-mint);
+}
+
+.tone-peach {
+  background: var(--tint-peach);
+}
+
+.tone-rose {
+  background: var(--tint-rose);
+}
+
+.tone-lilac {
+  background: var(--tint-lilac);
+}
+
+.tone-butter {
+  background: var(--butter-tint);
+}
+
+.highlight {
+  outline: var(--keyline-width) solid var(--primary);
+  outline-offset: -3px;
+}
+
+.ribNum {
+  position: absolute;
+  top: -5px;
+  left: 18px;
+  display: flex;
+  justify-content: center;
+  width: 32px;
+  height: 44px;
+  padding-top: 6px;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.2;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+
+.ribLabel {
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  height: 50px;
+  padding: 7px 10px 0;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.05;
+  text-align: center;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%);
+}

@@ -1,0 +1,112 @@
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-select) var(--ease-out),
+    transform 120ms var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.lg {
+  height: var(--pill-height);
+  font-size: 20px;
+}
+
+.md {
+  height: 58px;
+  font-size: 19px;
+}
+
+.sm {
+  height: 50px;
+  font-size: 17px;
+}
+
+.primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow-pill);
+}
+
+.primary:hover {
+  background: var(--primary-press);
+  color: #fff;
+}
+
+.secondary {
+  background: var(--surface);
+  color: var(--primary);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(1, 39, 73, 0.08);
+}
+
+.secondary:hover {
+  color: var(--primary-press);
+}
+
+.help {
+  background: var(--surface);
+  color: var(--ink-display);
+  box-shadow: 0 3px 6px rgba(1, 39, 73, 0.08), 0 12px 24px rgba(1, 39, 73, 0.12);
+}
+
+.help:hover {
+  color: var(--primary);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.inactive {
+  cursor: default;
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  box-shadow: none;
+}
+
+.inactive:hover {
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+}
+
+.inactive:active {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: background-color var(--dur-fade) linear;
+  }
+
+  .btn:active {
+    transform: none;
+  }
+}
+
+/* Short phones (docs/fit-plan.md): lg follows --pill-height (52 px); md and sm step down with it. */
+@media (max-height: 880px) {
+  .md {
+    height: 50px;
+  }
+
+  .sm {
+    height: 44px;
+  }
+}

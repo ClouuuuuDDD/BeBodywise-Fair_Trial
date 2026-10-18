@@ -1,0 +1,196 @@
+.head {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding-top: 18px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--butter-tint);
+  color: var(--butter-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.h1 {
+  margin-top: 14px;
+  max-width: 270px;
+  font-size: 34px;
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+}
+
+.mehr {
+  margin-right: -4px;
+}
+
+.error {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--tint-rose);
+  color: var(--rose-text);
+  font-weight: 700;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 68px;
+  padding: 10px 16px 10px 14px;
+  border: 0;
+  border-radius: var(--radius-card-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-row);
+  text-align: left;
+  cursor: pointer;
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--ink-muted);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.no {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 10px;
+  background: var(--tint-lilac);
+  color: var(--violet);
+  font-size: 12px;
+}
+
+.title {
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+.chev {
+  color: var(--primary);
+}
+
+.endings {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ending {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius-tile);
+  background: var(--surface-muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ending b {
+  color: var(--ink-display);
+  font-family: var(--font-display);
+  font-size: 19px;
+}
+
+.ending span {
+  color: var(--ink-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Phones: the ten moments as a 2-column grid so the whole trial fits one screen (docs/fit-plan.md). */
+.list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.card {
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 64px;
+  height: 100%;
+  padding: 8px 10px;
+}
+
+.thumb {
+  width: 40px;
+  height: 40px;
+}
+
+.thumb img {
+  width: 34px;
+  height: auto;
+}
+
+.label {
+  font-size: 12.5px;
+}
+
+.no {
+  min-width: 17px;
+  height: 17px;
+  font-size: 11px;
+}
+
+.title {
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.chev {
+  display: none;
+}
+
+@media (max-height: 880px) {
+  .head {
+    padding-top: 8px;
+  }
+
+  .h1 {
+    margin-top: 8px;
+  }
+}

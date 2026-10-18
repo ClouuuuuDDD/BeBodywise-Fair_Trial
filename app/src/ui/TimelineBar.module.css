@@ -1,0 +1,74 @@
+.wrap {
+  min-width: 0;
+}
+
+.dots {
+  display: grid;
+  gap: 4px 3px;
+}
+
+.d {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  justify-self: center;
+}
+
+.used {
+  background: var(--dot-used);
+}
+
+.future {
+  background: var(--dot-future);
+}
+
+.paused {
+  width: 5px;
+  height: 5px;
+  margin-top: 1.5px;
+  background: var(--dot-paused);
+}
+
+.reaction {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--dot-reaction);
+}
+
+.legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend i {
+  display: block;
+  border-radius: 50%;
+}
+
+.keyUsed {
+  width: 8px;
+  height: 8px;
+  background: var(--dot-used);
+}
+
+.keyPaused {
+  width: 5px;
+  height: 5px;
+  background: var(--dot-paused);
+}
+
+.keyReaction {
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--dot-reaction);
+}

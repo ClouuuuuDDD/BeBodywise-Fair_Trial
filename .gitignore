@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# Local secrets: the Gemini key lives in .dev.vars on your machine and in Cloudflare, never in git
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Generated copies of solution/data (scripts/sync-data.mjs); edit solution/data instead
+app/src/data/*.json
+
+# Test output and scratch
+playwright-report/
+test-results/
+coverage/
+e2e/tmp/
+e2e/fixtures/photo-synth/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+~$*

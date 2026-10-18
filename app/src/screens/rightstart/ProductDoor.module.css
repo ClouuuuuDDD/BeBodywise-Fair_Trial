@@ -1,0 +1,153 @@
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  margin-inline: calc(var(--gutter) * -1);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow-x: clip;
+}
+
+.store {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid #eee;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.concept {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.shot {
+  margin: 16px 20px 0;
+  height: 250px;
+  border-radius: 16px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px 14px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.price {
+  margin: 4px 0 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.door {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 44px;
+  margin: 0 20px;
+  padding: 14px 16px 14px 12px;
+  border-radius: 24px;
+  background: var(--ground);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(1, 39, 73, 0.05), 0 12px 26px rgba(105, 41, 196, 0.14);
+}
+
+.door:hover {
+  box-shadow: 0 2px 4px rgba(1, 39, 73, 0.05), 0 16px 32px rgba(105, 41, 196, 0.22);
+}
+
+.avatar {
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--ink-display);
+}
+
+.body {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+}
+
+.spark {
+  position: absolute;
+  top: -8px;
+  right: 58px;
+}
+
+.note {
+  margin: 12px 20px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.cart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52px;
+  margin: 0 20px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: default;
+}
