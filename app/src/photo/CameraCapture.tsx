@@ -43,7 +43,8 @@ export function CameraCapture({ site, onCapture }: Props) {
       const v = videoRef.current;
       if (v) {
         v.srcObject = stream;
-        await v.play();
+        // Some phones never settle play() on a video that is not shown yet; don't hang on "Starting camera…".
+        await Promise.race([v.play(), new Promise((r) => setTimeout(r, 3000))]).catch(() => undefined);
       }
       setState('live');
     } catch {
@@ -56,6 +57,13 @@ export function CameraCapture({ site, onCapture }: Props) {
   const take = useCallback(async () => {
     const v = videoRef.current;
     if (!v) return;
+    // No frames (playback blocked): offer the photo chooser instead of a dead shutter.
+    if (!v.videoWidth) {
+      stopCamera(streamRef.current);
+      streamRef.current = null;
+      setState('fallback');
+      return;
+    }
     setState('busy');
     try {
       onCapture(await captureBurst(v));
@@ -84,9 +92,11 @@ export function CameraCapture({ site, onCapture }: Props) {
       >
         <video
           ref={videoRef}
+          autoPlay
           playsInline
           muted
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: showVideo ? 'block' : 'none' }}
+          // Laid out but invisible until live (a display:none video won't play on iPhone Safari).
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: showVideo ? 1 : 0 }}
         />
         {state !== 'fallback' && (
           <>

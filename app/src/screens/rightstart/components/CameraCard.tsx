@@ -38,8 +38,13 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
           return;
         }
         stream.current = media;
-        if (video.current) video.current.srcObject = media;
-        setState('live');
+        // The <video> is always mounted, so the stream can be attached the moment it arrives.
+        const v = video.current;
+        if (v) {
+          v.srcObject = media;
+          await v.play().catch(() => undefined); // autoPlay covers browsers that refuse play() here
+        }
+        if (!cancelled) setState('live');
       } catch {
         if (!cancelled) setState('unavailable');
       }
@@ -54,7 +59,12 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
 
   function shoot() {
     const v = video.current;
-    if (!v || busy || !v.videoWidth) return;
+    if (busy) return;
+    // No frames yet (camera still warming up, or the browser blocked playback): never a dead tap.
+    if (!v || !v.videoWidth) {
+      file.current?.click();
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = v.videoWidth;
     canvas.height = v.videoHeight;
@@ -71,7 +81,15 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
   return (
     <>
       <div className={styles.card} role="group" aria-label={label}>
-        {state === 'live' ? <video ref={video} className={styles.video} autoPlay playsInline muted aria-hidden="true" /> : null}
+        <video
+          ref={video}
+          className={styles.video}
+          style={state === 'live' ? undefined : { opacity: 0 }}
+          autoPlay
+          playsInline
+          muted
+          aria-hidden="true"
+        />
         {state === 'starting' ? <span className={styles.spinner} role="status" aria-label="One moment…" /> : null}
         {state === 'unavailable' ? (
           <div className={styles.fallback}>
