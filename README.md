@@ -4,7 +4,7 @@ A phone web app that gives a Be Bodywise buyer a fair answer to "is this working
 
 > **Concept only.** Not made by, or affiliated with, Mosaic Wellness or Be Bodywise. All rules are placeholders, to be set and signed by a dermatologist. The insights dashboard uses sample data.
 
-## What it does
+## What it does - ()
 
 The app opens in a **guided demo**, so anyone can play the whole journey in a few minutes. Chapter cards explain each phase, and a day control skips through the 8 weeks.
 
