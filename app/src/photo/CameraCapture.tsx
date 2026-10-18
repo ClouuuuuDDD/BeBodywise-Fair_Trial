@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PhotoRegion } from '../contracts';
-import { cameraSupported, captureBurst, FRAME_ASPECT, startCamera, stopCamera } from './capture';
+import { cameraSupported, captureBurst, FRAME_ASPECT, inAppBrowser, nextFrame, playVideo, startCamera, stopCamera } from './capture';
 import { CAMERA_COPY } from './copy';
 import { GUIDE_OVAL } from '../engine/config';
 
@@ -32,6 +32,8 @@ export function CameraCapture({ site, onCapture }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [state, setState] = useState<'idle' | 'starting' | 'live' | 'busy' | 'fallback'>(cameraSupported() ? 'idle' : 'fallback');
+  // The browser refused to play the preview without a tap (Android in-app browsers, or the tap expired during the prompt).
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => () => stopCamera(streamRef.current), []);
 
@@ -41,12 +43,14 @@ export function CameraCapture({ site, onCapture }: Props) {
       const stream = await startCamera();
       streamRef.current = stream;
       const v = videoRef.current;
+      let playing = false;
       if (v) {
         v.srcObject = stream;
         // Some phones never settle play() on a video that is not shown yet; don't hang on "Starting camera…".
-        await Promise.race([v.play(), new Promise((r) => setTimeout(r, 3000))]).catch(() => undefined);
+        playing = await Promise.race([playVideo(v), new Promise<boolean>((r) => setTimeout(() => r(!v.paused), 3000))]);
       }
       setState('live');
+      setNeedsTap(!playing);
     } catch {
       stopCamera(streamRef.current);
       streamRef.current = null;
@@ -54,9 +58,39 @@ export function CameraCapture({ site, onCapture }: Props) {
     }
   }, []);
 
+  // Coming back from the permission prompt or another app can leave the preview paused: start it again.
+  useEffect(() => {
+    if (state !== 'live') return;
+    const resume = () => {
+      const v = videoRef.current;
+      if (document.visibilityState !== 'visible' || !v || !v.paused || !streamRef.current) return;
+      void playVideo(v).then((ok) => setNeedsTap(!ok));
+    };
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('focus', resume);
+    return () => {
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('focus', resume);
+    };
+  }, [state]);
+
+  const tapToStart = useCallback(async () => {
+    const v = videoRef.current;
+    if (v) setNeedsTap(!(await playVideo(v)));
+  }, []);
+
   const take = useCallback(async () => {
     const v = videoRef.current;
     if (!v) return;
+    // A paused preview is a frozen picture: start it from this tap, then measure fresh frames.
+    if (v.paused && streamRef.current) {
+      if (!(await playVideo(v))) {
+        setNeedsTap(true);
+        return;
+      }
+      setNeedsTap(false);
+      await nextFrame(v);
+    }
     // No frames (playback blocked): offer the photo chooser instead of a dead shutter.
     if (!v.videoWidth) {
       stopCamera(streamRef.current);
@@ -136,6 +170,16 @@ export function CameraCapture({ site, onCapture }: Props) {
             </p>
           </>
         )}
+        {state === 'live' && needsTap && (
+          <button
+            type="button"
+            onClick={() => void tapToStart()}
+            data-testid="camera-tap-start"
+            style={{ position: 'absolute', inset: 0, zIndex: 2, width: '100%', border: 0, background: 'rgba(1, 39, 73, 0.55)', color: '#fff', font: '800 18px var(--font-display)', cursor: 'pointer' }}
+          >
+            {CAMERA_COPY.tapToStart}
+          </button>
+        )}
         {state === 'starting' && (
           <p role="status" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#fff', margin: 0 }}>
             Starting camera…
@@ -148,6 +192,7 @@ export function CameraCapture({ site, onCapture }: Props) {
         )}
       </div>
       <p style={{ color: 'var(--ink-muted)', fontSize: 14 }}>{CAMERA_COPY.cardTip}</p>
+      {inAppBrowser() ? <p style={{ margin: '0 0 6px', color: 'var(--ink-soft)', fontSize: 13, fontWeight: 700 }}>{CAMERA_COPY.inApp}</p> : null}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         {state === 'idle' && (
           <button type="button" style={btn} onClick={start} data-testid="primary">

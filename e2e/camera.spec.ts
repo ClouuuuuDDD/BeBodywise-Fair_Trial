@@ -61,3 +61,30 @@ test('skin camera: live preview after "Take photo", then a capture is measured',
   // The fake feed is a test pattern (no skin, no white card), so the quality gate asks for a retake: proof it was measured.
   await expect(tid('photo-fail')).toBeVisible();
 });
+
+test.describe('in an app\'s built-in browser (play only from a tap)', () => {
+  test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0 Mobile Safari/537.36 Instagram 350.0' });
+
+  test('label camera: a frozen preview offers "Tap to start the camera", then the shutter works', async ({ page }) => {
+    await page.addInitScript(() => {
+      // Like an Android WebView with mediaPlaybackRequiresUserGesture: play() only within a tap on the page.
+      let tappedAt = -1e9;
+      addEventListener('pointerdown', () => (tappedAt = performance.now()), true);
+      const real = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (performance.now() - tappedAt > 1000) return Promise.reject(new DOMException('needs a tap', 'NotAllowedError'));
+        return real.call(this);
+      };
+      new MutationObserver(() => document.querySelectorAll('video[autoplay]').forEach((v) => v.removeAttribute('autoplay'))).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['autoplay'] });
+    });
+    await page.goto('/check/shelf/add');
+    // The fake camera can take a few seconds to warm up on a cold start.
+    await expect(page.getByTestId('camera-tap-start')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Camera not working? Open this page in Chrome.')).toBeVisible();
+    await page.getByTestId('camera-tap-start').click();
+    await expect.poll(async () => (await preview(page))?.playing).toBe(true);
+    await expect(page.getByTestId('camera-tap-start')).toHaveCount(0);
+    await page.getByTestId('shutter').click();
+    await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
+  });
+});

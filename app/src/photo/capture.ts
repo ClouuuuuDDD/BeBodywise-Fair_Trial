@@ -20,6 +20,36 @@ export function startCamera(): Promise<MediaStream> {
   });
 }
 
+/**
+ * Starts playback of the camera preview. Resolves false when the browser refuses (Android in-app browsers and some
+ * Chrome cases only allow it from a tap): the screen then shows "Tap to start the camera".
+ */
+export async function playVideo(video: HTMLVideoElement): Promise<boolean> {
+  video.muted = true; // muted is what makes playback allowed without sound; set it on the element itself
+  try {
+    await video.play();
+  } catch {
+    return false;
+  }
+  return !video.paused;
+}
+
+/** One fresh frame after playback starts, so a capture is never the frozen first frame. */
+export function nextFrame(video: HTMLVideoElement): Promise<void> {
+  return new Promise((resolve) => {
+    const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+    if (typeof v.requestVideoFrameCallback === 'function') v.requestVideoFrameCallback(() => resolve());
+    else setTimeout(resolve, 120);
+    setTimeout(resolve, 500); // never wait long
+  });
+}
+
+/** True inside an app's built-in browser (Instagram, Facebook, Gmail and other Android WebViews), where the camera often fails. */
+export function inAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /; wv\)|FBAN|FBAV|Instagram|Line\/|GSA\/|Snapchat|Twitter/i.test(navigator.userAgent);
+}
+
 /** Stops all tracks of a stream. */
 export function stopCamera(stream: MediaStream | null): void {
   stream?.getTracks().forEach((t) => t.stop());

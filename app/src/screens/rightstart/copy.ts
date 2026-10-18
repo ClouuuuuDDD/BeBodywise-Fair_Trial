@@ -112,6 +112,8 @@ export const add = {
   errorTry: 'Try again',
   cancel: 'Cancel',
   denied: 'Camera not available. Choose a photo instead.',
+  tapToStart: 'Tap to start the camera',
+  inApp: 'Camera not working? Open this page in Chrome.',
   typeName: 'Type the name',
   typeNameField: 'Product name',
   typeIngredients: 'Paste or type the ingredient list',

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { inAppBrowser, nextFrame, playVideo } from '../../../photo/capture';
 import { add } from '../copy';
 import styles from './CameraCard.module.css';
 
@@ -26,6 +27,8 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
   const stream = useRef<MediaStream | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<CameraState>('starting');
+  // The browser refused to play the preview without a tap (Android in-app browsers, some Chrome cases).
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,11 +43,14 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
         stream.current = media;
         // The <video> is always mounted, so the stream can be attached the moment it arrives.
         const v = video.current;
+        let playing = false;
         if (v) {
           v.srcObject = media;
-          await v.play().catch(() => undefined); // autoPlay covers browsers that refuse play() here
+          playing = await playVideo(v);
         }
-        if (!cancelled) setState('live');
+        if (cancelled) return;
+        setState('live');
+        setNeedsTap(!playing);
       } catch {
         if (!cancelled) setState('unavailable');
       }
@@ -57,9 +63,40 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
     };
   }, []);
 
-  function shoot() {
+  // Coming back from the permission prompt or another app can leave the preview paused: start it again.
+  useEffect(() => {
+    if (state !== 'live') return;
+    const resume = () => {
+      const v = video.current;
+      if (document.visibilityState !== 'visible' || !v || !v.paused || !stream.current) return;
+      void playVideo(v).then((ok) => setNeedsTap(!ok));
+    };
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('focus', resume);
+    return () => {
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('focus', resume);
+    };
+  }, [state]);
+
+  async function tapToStart() {
+    const v = video.current;
+    if (!v) return;
+    setNeedsTap(!(await playVideo(v)));
+  }
+
+  async function shoot() {
     const v = video.current;
     if (busy) return;
+    // A paused preview is a frozen picture: start it from this tap and take a fresh frame.
+    if (v && stream.current && v.paused) {
+      if (!(await playVideo(v))) {
+        setNeedsTap(true);
+        return;
+      }
+      setNeedsTap(false);
+      await nextFrame(v);
+    }
     // No frames yet (camera still warming up, or the browser blocked playback): never a dead tap.
     if (!v || !v.videoWidth) {
       file.current?.click();
@@ -91,6 +128,11 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
           aria-hidden="true"
         />
         {state === 'starting' ? <span className={styles.spinner} role="status" aria-label="One moment…" /> : null}
+        {state === 'live' && needsTap ? (
+          <button type="button" className={styles.tapStart} onClick={() => void tapToStart()} data-testid="camera-tap-start">
+            {add.tapToStart}
+          </button>
+        ) : null}
         {state === 'unavailable' ? (
           <div className={styles.fallback}>
             <p>{add.denied}</p>
@@ -106,6 +148,7 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
         {captured ? <span className={styles.tip}>{add.captured}</span> : null}
       </div>
       {children}
+      {inAppBrowser() ? <p className={styles.inApp}>{add.inApp}</p> : null}
       <input
         ref={file}
         type="file"
@@ -125,7 +168,7 @@ export function CameraCard({ onPhoto, busy, label, captured, children }: CameraC
           data-testid="shutter"
           disabled={busy}
           aria-disabled={busy || undefined}
-          onClick={state === 'live' ? shoot : () => file.current?.click()}
+          onClick={state === 'live' ? () => void shoot() : () => file.current?.click()}
         >
           <span />
         </button>

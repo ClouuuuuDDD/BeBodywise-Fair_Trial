@@ -18,6 +18,8 @@ export const CAMERA_COPY = {
   instrInner: 'Turn your arm. Fit your inner arm in the oval.',
   card: 'CARD',
   cardTip: 'Hold a plain white paper in the corner. Face a window, no flash.',
+  tapToStart: 'Tap to start the camera',
+  inApp: 'Camera not working? Open this page in Chrome.',
   privacy: 'Photos never leave this phone',
   primary: 'Take photo',
   retake: 'Retake',
