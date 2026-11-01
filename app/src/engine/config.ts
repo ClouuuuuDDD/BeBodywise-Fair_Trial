@@ -86,8 +86,8 @@ export const LABEL_MIN_INGREDIENTS = 4;
 export const LABEL_MAX_EDGE_PX = 1280;
 /** Drying alcohol only counts when it is within the first this-many ingredients. */
 export const DRYING_ALCOHOL_MAX_POSITION = 5;
-/** Give up on /api/read-label after this long and offer "Type the name" (engineering parameter, PRD GAP-3). */
-export const LABEL_TIMEOUT_MS = 20_000;
+/** Phone timeout per call; the server's own deadline is 22 s (spec 5.5). */
+export const LABEL_TIMEOUT_MS = 25_000;
 
 /* ---------- Fit check and plan ---------- */
 

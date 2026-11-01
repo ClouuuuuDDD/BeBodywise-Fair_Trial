@@ -1,3 +1,4 @@
+import type { ShelfReview } from '../contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { LabelApiError, callReadLabelApi } from './api';
 import { LABEL_FIXTURES, cachedRead } from './fixtures';
@@ -92,6 +93,15 @@ describe('readLabelPhoto fallback order', () => {
     expect(eventStatus(r)).toBe('ok');
   });
 
+  it('carries the review from the API call, and passes the context through', async () => {
+    const review: ShelfReview = { status: 'ok', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31', culprits: [], mayWorsenDarkness: false, action: 'keep', actionWhy: 'Gentle.', confidence: 'high' };
+    const callApi = vi.fn(async (_b: string, _k: string, _c?: unknown) => apiOk({ review }));
+    const context = { target: { name: 'T', ingredients: 'Aqua' }, her: {}, shelfSoFar: [], thisProduct: {} };
+    const r = await readLabelPhoto(photo, 'ingredients', { ...deps({ callApi }), context });
+    expect(r.review).toEqual(review);
+    expect(callApi.mock.calls[0]![2]).toEqual(context);
+  });
+
   it('reports the OpenRouter provider the function used', async () => {
     const r = await readLabelPhoto(photo, 'ingredients', deps({ callApi: async () => apiOk({ provider: 'openrouter' }) }));
     expect(r.source).toBe('openrouter');
@@ -174,14 +184,24 @@ describe('readLabelPhoto fallback order', () => {
 describe('callReadLabelApi', () => {
   const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
 
-  it('retries once on a 5xx then succeeds', async () => {
-    const f = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(json(502, { ok: false, error: 'unreadable' }))
-      .mockResolvedValueOnce(json(200, apiOk()));
-    const out = await callReadLabelApi('/9j/AAAA', 'ingredients', { fetchImpl: f });
-    expect(out.ingredientsText).toBe(GOOD);
-    expect(f).toHaveBeenCalledTimes(2);
+  it('does not retry a 502 (the server already tried every provider)', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: false, error: 'unreadable' }), { status: 502 }));
+    await expect(callReadLabelApi('/9j/AAAA', 'ingredients', { fetchImpl: f })).rejects.toMatchObject({ status: 502 });
+    expect(f).toHaveBeenCalledOnce();
+  });
+
+  it('does not retry its own timeout', async () => {
+    const f = vi.fn<typeof fetch>().mockRejectedValue(new DOMException('t', 'TimeoutError'));
+    await expect(callReadLabelApi('/9j/AAAA', 'ingredients', { fetchImpl: f })).rejects.toMatchObject({ code: 'timeout' });
+    expect(f).toHaveBeenCalledOnce();
+  });
+
+  it('sends the context with an ingredients read, and returns the review', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ ok: true, kind: 'ingredients', provider: 'gemini', ingredientsText: 'Aqua, Parfum, Glycerin, Aloe', review: { status: 'ok' } }), { status: 200 }));
+    const ctx = { target: { name: 'T', ingredients: 'Aqua' }, her: {}, shelfSoFar: [], thisProduct: {} };
+    const out = await callReadLabelApi('/9j/AAAA', 'ingredients', { fetchImpl: f }, ctx);
+    expect(JSON.parse(f.mock.calls[0]![1]!.body as string)).toEqual({ kind: 'ingredients', image: '/9j/AAAA', mime: 'image/jpeg', context: ctx });
+    expect(out.review).toEqual({ status: 'ok' });
   });
 
   it('retries once on a network error, then throws', async () => {

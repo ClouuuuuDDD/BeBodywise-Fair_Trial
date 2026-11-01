@@ -1,3 +1,4 @@
+import type { ReviewContext, ShelfReview } from '../contracts';
 import { readLabel as parseIngredientText } from '../engine/classifyIngredients';
 import { callReadLabelApi, LabelApiError } from './api';
 import { extractIngredientsFromOcr, guessNameFromOcr, recognizeText, type OcrFn } from './ocr';
@@ -7,14 +8,14 @@ import type { LabelEventStatus, LabelKind, LabelReadResult, LabelSource, ReadLab
 /** Swappable pieces, so tests can mock the network, the canvas and the OCR. */
 export interface ReadDeps {
   resize: (photo: Blob) => Promise<ResizedPhoto>;
-  callApi: (base64: string, kind: LabelKind) => Promise<ReadLabelApiResponse>;
+  callApi: (base64: string, kind: LabelKind, context?: ReviewContext) => Promise<ReadLabelApiResponse>;
   ocr: OcrFn;
   now: () => number;
 }
 
 const defaultDeps: ReadDeps = {
   resize: resizeLabelPhoto,
-  callApi: (base64, kind) => callReadLabelApi(base64, kind),
+  callApi: (base64, kind, context) => callReadLabelApi(base64, kind, {}, context),
   ocr: (photo) => recognizeText(photo),
   now: () => Date.now(),
 };
@@ -24,7 +25,7 @@ export function buildResult(
   kind: LabelKind,
   source: LabelSource | null,
   fields: { name?: string | null; brand?: string | null; ingredientsText?: string | null },
-  meta: { latencyMs?: number; httpStatus?: number | null; usedOcr?: boolean } = {},
+  meta: { latencyMs?: number; httpStatus?: number | null; usedOcr?: boolean; review?: ShelfReview | null } = {},
 ): LabelReadResult {
   const base = {
     kind,
@@ -34,6 +35,7 @@ export function buildResult(
     latencyMs: meta.latencyMs ?? 0,
     httpStatus: meta.httpStatus ?? null,
     usedOcr: meta.usedOcr ?? false,
+    review: meta.review ?? null,
   };
   if (kind === 'front') {
     const has = Boolean(base.name || base.brand);
@@ -68,7 +70,8 @@ export function latencyBucket(ms: number): '<2s' | '2-5s' | '5-10s' | '>10s' {
  * (the screen shows "type it in"). Never throws. A "retake" result still carries the text so
  * she can see it. Nothing is decided here: she confirms on 04b.
  */
-export async function readLabelPhoto(photo: Blob, kind: LabelKind, deps: Partial<ReadDeps> = {}): Promise<LabelReadResult> {
+export async function readLabelPhoto(photo: Blob, kind: LabelKind, opts: Partial<ReadDeps> & { context?: ReviewContext } = {}): Promise<LabelReadResult> {
+  const { context, ...deps } = opts;
   const d = { ...defaultDeps, ...deps };
   const t0 = d.now();
   let httpStatus: number | null = null;
@@ -77,12 +80,12 @@ export async function readLabelPhoto(photo: Blob, kind: LabelKind, deps: Partial
   try {
     const small = await d.resize(photo);
     toOcr = small.blob;
-    const api = await d.callApi(small.base64, kind);
+    const api = await d.callApi(small.base64, kind, context);
     const r = buildResult(
       kind,
-      api.provider === 'openrouter' ? 'openrouter' : 'gemini',
+      api.provider === 'none' ? 'gemini' : api.provider,
       { name: api.name, brand: api.brand, ingredientsText: api.ingredientsText },
-      { httpStatus: 200, latencyMs: d.now() - t0 },
+      { httpStatus: 200, latencyMs: d.now() - t0, review: api.review ?? null },
     );
     // An ok reply with nothing usable counts as a failed read: try OCR.
     if (r.status !== 'manual') return r;

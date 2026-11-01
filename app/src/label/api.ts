@@ -1,3 +1,4 @@
+import type { ReviewContext } from '../contracts';
 import { LABEL_TIMEOUT_MS } from '../engine/config';
 import type { LabelKind, ReadLabelApiResponse } from './types';
 
@@ -21,40 +22,40 @@ export interface CallOptions {
   endpoint?: string;
 }
 
-function isRetryable(e: LabelApiError): boolean {
-  // Network error / timeout (0), 5xx except "not set up" 503. 4xx (bad photo, too big, rate limit) will not change.
-  return e.status === 0 || (e.status >= 500 && e.status !== 503);
-}
-
-async function attempt(base64: string, kind: LabelKind, o: Required<Omit<CallOptions, 'retries'>>): Promise<ReadLabelApiResponse> {
+async function attempt(body: Record<string, unknown>, o: Required<Omit<CallOptions, 'retries'>>, signal?: AbortSignal): Promise<ReadLabelApiResponse> {
   let res: Response;
   try {
+    const timeout = AbortSignal.timeout(o.timeoutMs);
     res = await o.fetchImpl(o.endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ kind, image: base64, mime: 'image/jpeg' }),
-      signal: AbortSignal.timeout(o.timeoutMs),
+      body: JSON.stringify(body),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
-  } catch {
-    throw new LabelApiError('network_or_timeout', 0, 'network');
+  } catch (e) {
+    const name = e instanceof Error ? e.name : '';
+    if (name === 'TimeoutError') throw new LabelApiError('timeout', 0, 'timeout');
+    if (name === 'AbortError') throw new LabelApiError('aborted', 0, 'aborted');
+    throw new LabelApiError('network', 0, 'network');
   }
-  let body: ReadLabelApiResponse | null = null;
+  let json: ReadLabelApiResponse | null = null;
   try {
-    body = (await res.json()) as ReadLabelApiResponse;
+    json = (await res.json()) as ReadLabelApiResponse;
   } catch {
     // Not JSON: a dev server returning index.html, or a gateway error page.
   }
-  if (!res.ok || !body || body.ok !== true) {
-    throw new LabelApiError(body?.message ?? `http_${res.status}`, res.status, body?.error ?? 'http');
+  if (!res.ok || !json || json.ok !== true) {
+    throw new LabelApiError(json?.message ?? `http_${res.status}`, res.status, json?.error ?? 'http');
   }
-  return body;
+  return json;
 }
 
-/**
- * POSTs one resized photo. Timeout per attempt (LABEL_TIMEOUT_MS) and one retry on network
- * errors, timeouts and 5xx. Throws LabelApiError when it gives up.
- */
-export async function callReadLabelApi(base64: string, kind: LabelKind, opts: CallOptions = {}): Promise<ReadLabelApiResponse> {
+/** Spec 5.5: one retry, only on a network error. A 502 means the server already tried every provider; a timeout already took 25 s. */
+function isRetryable(e: LabelApiError): boolean {
+  return e.code === 'network';
+}
+
+async function withRetry(body: Record<string, unknown>, opts: CallOptions, signal?: AbortSignal): Promise<ReadLabelApiResponse> {
   const o = {
     fetchImpl: opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a)),
     timeoutMs: opts.timeoutMs ?? LABEL_TIMEOUT_MS,
@@ -64,11 +65,24 @@ export async function callReadLabelApi(base64: string, kind: LabelKind, opts: Ca
   let last: LabelApiError | null = null;
   for (let i = 0; i <= retries; i++) {
     try {
-      return await attempt(base64, kind, o);
+      return await attempt(body, o, signal);
     } catch (e) {
       last = e instanceof LabelApiError ? e : new LabelApiError('unknown', 0, 'unknown');
       if (!isRetryable(last)) break;
     }
   }
   throw last ?? new LabelApiError('unknown', 0, 'unknown');
+}
+
+/** POSTs one resized label photo; the ingredients side carries the review context. */
+export function callReadLabelApi(base64: string, kind: LabelKind, opts: CallOptions = {}, context?: ReviewContext): Promise<ReadLabelApiResponse> {
+  return withRetry({ kind, image: base64, mime: 'image/jpeg', ...(kind === 'ingredients' && context ? { context } : {}) }, opts);
+}
+
+/** Re-judges confirmed text (spec 5.3): after an edit, a stung tick, OCR or typing. */
+export function callReviewTextApi(
+  input: { ingredientsText: string; productName: string; context: ReviewContext },
+  opts: CallOptions & { signal?: AbortSignal } = {},
+): Promise<ReadLabelApiResponse> {
+  return withRetry({ kind: 'review-text', ...input }, opts, opts.signal);
 }

@@ -11,7 +11,7 @@ export type { LabelReadState } from './useLabelRead';
 export { LABEL_FIXTURES, getFixture, cachedRead } from './fixtures';
 export type { LabelFixture } from './fixtures';
 export { resizeLabelPhoto, targetSize } from './resize';
-export { callReadLabelApi, LabelApiError } from './api';
+export { callReadLabelApi, callReviewTextApi, LabelApiError } from './api';
 export { extractIngredientsFromOcr } from './ocr';
 export type {
   LabelKind,
