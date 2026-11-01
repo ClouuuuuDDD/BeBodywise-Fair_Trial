@@ -85,13 +85,13 @@ export const fitQuestions: Record<1 | 2 | 3 | 4 | 5, FitQuestionCopy> = {
 
 export const shelf = {
   runningHead: 'Right Start · Your shelf',
-  title: "What's on your shelf?",
-  lead: 'Add what you use on your body, any brand. We read the labels.',
+  title: 'What touches your underarms?',
+  lead: 'Add only what you use on your underarms, any brand: deodorant, roll-on, body lotion, hair removal cream, scrub, or a toner you use there. We read the labels.',
   empty: "Nothing here yet. If you use nothing else, that's fine too.",
   stungNote: ' · stung once',
   add: 'Add a product',
   primary: 'Check how they get along',
-  edit: 'Edit where and when',
+  edit: 'Edit when you use it',
   remove: 'Remove from my shelf',
 } as const;
 
@@ -118,23 +118,14 @@ export const add = {
   typeNameField: 'Product name',
   typeIngredients: 'Paste or type the ingredient list',
   bodywise: 'A Be Bodywise one',
-  /** G1-4 privacy line shown on 04a (s04a.privacy). */
-  privacy: "We don't keep label photos. Photos of your skin never leave your phone.",
   /** G1-4 full line, shown once beside the camera as the Gemini disclosure. */
   geminiPrivacy:
-    "Label photos are read by Google Gemini to get the ingredients. We don't keep them. Photos of your skin never leave your phone.",
+    'Label photos and three of your answers (shade, how long, hair removal) are read by AI services (Google Gemini, with backups). Google may use free-tier data to improve its products. Skin photos never leave this phone.',
 } as const;
 
 export const confirm = {
   runningHead: 'Check what we read',
-  where: 'Where do you use it?',
   when: 'When?',
-  whereOptions: [
-    { value: 'face', label: 'Face' },
-    { value: 'underarm', label: 'Underarms' },
-    { value: 'body', label: 'Body' },
-    { value: 'neck', label: 'Neck' },
-  ],
   whenOptions: [
     { value: 'morning', label: 'Morning' },
     { value: 'night', label: 'Night' },
@@ -144,13 +135,13 @@ export const confirm = {
   stung: 'This has stung me',
   primary: 'Looks right, add to my shelf',
   secondary: "Something's off? Fix a word or retake",
-  needBoth: 'Pick where and when you use it to add it.',
-  needWhere: 'Pick where you use it to add it.',
   needWhen: 'Pick when you use it to add it.',
   sweatOrSmell: (product: string) => `Do you use ${product} to stop sweat, or for smell?`,
   sweat: 'Sweat',
   smell: 'Smell',
   both: 'Both',
+  checking: 'Checking it against your plan…',
+  addUnchecked: 'Add it now, check later',
 } as const;
 
 export const answers = {

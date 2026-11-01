@@ -29,21 +29,59 @@ const FIXTURES: Record<'toner' | 'spray' | 'cream', Fixture> = {
   cream: { name: 'Silk Hair Removal Cream', brand: 'Silk', ingredients: 'Aqua, Potassium Thioglycolate, Calcium Hydroxide, Parfum' },
 };
 
-type Mock = { current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void> };
+type ReviewFixture = { productType: string; culprits: { ingredient: string; concern: string; why: string }[]; mayWorsenDarkness: boolean; darknessWhy?: string; action: string; actionWhy: string; confidence: string };
+
+/** What the mocked AI says per fixture (fictional brands; spec 3.5). */
+const REVIEWS: Record<'toner' | 'spray' | 'cream' | 'default', ReviewFixture> = {
+  toner: {
+    productType: 'toner-serum-acid',
+    culprits: [{ ingredient: 'Glycolic Acid', concern: 'acid', why: 'A second exfoliating acid on the same skin may over-exfoliate.' }],
+    mayWorsenDarkness: true, darknessWhy: 'Over-exfoliation may irritate and leave darker marks.',
+    action: 'pause-during-trial', actionWhy: 'Two acids on the same skin may irritate and blur whether the roll-on worked.', confidence: 'high',
+  },
+  spray: {
+    productType: 'deodorant-antiperspirant',
+    culprits: [{ ingredient: 'Alcohol Denat.', concern: 'drying-alcohol', why: 'Drying alcohol first in the list may sting freshly treated skin.' }],
+    mayWorsenDarkness: true, darknessWhy: 'It has stung you, and repeated stinging may darken skin.',
+    action: 'pause-during-trial', actionWhy: 'It stung you before. The roll-on works as a deodorant, so pause this for the trial.', confidence: 'high',
+  },
+  cream: {
+    productType: 'hair-removal',
+    culprits: [{ ingredient: 'Potassium Thioglycolate', concern: 'depilatory', why: 'Hair removal chemicals leave skin sensitive for a while.' }],
+    mayWorsenDarkness: false, action: 'different-time', actionWhy: 'Keep it at least two days away from the roll-on.', confidence: 'high',
+  },
+  default: { productType: 'other', culprits: [], mayWorsenDarkness: false, action: 'keep', actionWhy: 'Nothing here looks harsh for your underarms.', confidence: 'high' },
+};
+const stamped = (r: ReviewFixture) => ({ ...r, status: 'ok', provider: 'gemini', model: 'gemini-3.5-flash-lite', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31' });
+
+type Mock = {
+  current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void>;
+  review: ReviewFixture; reviewStatus: number; bodies: Record<string, unknown>[];
+};
 
 /** Blocks non-local hosts and mocks the label reader. */
 async function setup(page: Page): Promise<Mock> {
-  const mock: Mock = { current: FIXTURES.toner, delayMs: 0, status: 200, requests: 0 };
+  const mock: Mock = { current: FIXTURES.toner, delayMs: 0, status: 200, requests: 0, review: REVIEWS.toner, reviewStatus: 200, bodies: [] };
   await page.route((url) => !['localhost', '127.0.0.1'].includes(url.hostname), (route) => route.abort());
   await page.route('**/api/read-label', async (route) => {
     mock.requests += 1;
+    const body = JSON.parse(route.request().postData() ?? '{}') as { kind?: string };
+    mock.bodies.push(body);
+    if (body.kind === 'review-text') {
+      if (mock.reviewStatus !== 200) {
+        await route.fulfill({ status: mock.reviewStatus, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'unreadable' }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, kind: 'review-text', provider: 'gemini', review: stamped(mock.review) }) });
+      return;
+    }
     if (mock.delayMs) await new Promise((r) => setTimeout(r, mock.delayMs));
     if (mock.gate) await mock.gate; // a test holds the reply until it has looked at the loading state
     if (mock.status !== 200) {
       await route.fulfill({ status: mock.status, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'boom' }) });
       return;
     }
-    const kind = (JSON.parse(route.request().postData() ?? '{}') as { kind?: string }).kind;
+    const kind = body.kind;
     const f = mock.current;
     await route.fulfill({
       status: 200,
@@ -51,7 +89,7 @@ async function setup(page: Page): Promise<Mock> {
       body: JSON.stringify(
         kind === 'front'
           ? { ok: true, kind: 'front', name: f.name, brand: f.brand, provider: 'gemini' }
-          : { ok: true, kind: 'ingredients', ingredientsText: f.ingredients, provider: 'gemini' },
+          : { ok: true, kind: 'ingredients', ingredientsText: f.ingredients, provider: 'gemini', review: stamped(mock.review) },
       ),
     });
   });
@@ -144,15 +182,15 @@ async function addLabelProduct(
   page: Page,
   mock: Mock,
   key: 'toner' | 'spray' | 'cream',
-  o: { areas: string[]; time: string; stung?: boolean; antiperspirant?: 'sweat' | 'smell' | 'both' },
+  o: { time: string; stung?: boolean; antiperspirant?: 'sweat' | 'smell' | 'both' },
 ) {
   mock.current = FIXTURES[key];
+  mock.review = REVIEWS[key];
   await page.getByTestId('add-product').click();
   await page.getByTestId('photo-upload').setInputFiles(photo);
   await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
   await page.getByTestId('photo-upload').setInputFiles(photo);
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   if (o.stung) await page.getByTestId('chip-stung').click();
   await page.getByTestId('primary').click();
@@ -160,39 +198,38 @@ async function addLabelProduct(
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
-async function addCatalogProduct(page: Page, id: string, o: { areas: string[]; time: string }) {
+async function addCatalogProduct(page: Page, mock: Mock, id: string, o: { time: string }) {
+  mock.review = REVIEWS.default;
   await page.getByTestId('add-product').click();
   await page.getByTestId('bodywise-one').click();
   await page.getByTestId(`catalog-${id}`).click();
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   await page.getByTestId('primary').click();
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
 /** A typed product (no network): name plus the ingredient list. */
-async function addTypedProduct(page: Page, name: string, list: string, o: { areas: string[]; time: string }) {
+async function addTypedProduct(page: Page, mock: Mock, name: string, list: string, o: { time: string }, review: ReviewFixture = REVIEWS.default) {
+  mock.review = review;
   await page.getByTestId('add-product').click();
   await page.getByTestId('type-name').click();
   await page.getByTestId('typed-name').fill(name);
   await page.getByTestId('typed-ingredients').fill(list);
   await page.getByTestId('type-continue').click();
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   await page.getByTestId('primary').click();
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
-/** Riya's worked example: four products, answers per solution/shelf-check-spec.md. Ends on 04 with four rows. */
+/** Riya's worked example: three underarm products, answers per solution/shelf-check-spec.md. Ends on 04 with three rows. */
 async function riyaShelf(page: Page, mock: Mock) {
   await fitCheck(page, RIYA);
-  await addLabelProduct(page, mock, 'toner', { areas: ['face', 'underarm'], time: 'night' });
-  await addLabelProduct(page, mock, 'spray', { areas: ['underarm'], time: 'morning', stung: true, antiperspirant: 'smell' });
-  await addLabelProduct(page, mock, 'cream', { areas: ['underarm'], time: 'now-and-then' });
-  await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
-  await expect(page.getByTestId('shelf-row')).toHaveCount(4);
+  await addLabelProduct(page, mock, 'toner', { time: 'night' });
+  await addLabelProduct(page, mock, 'spray', { time: 'morning', stung: true, antiperspirant: 'smell' });
+  await addLabelProduct(page, mock, 'cream', { time: 'now-and-then' });
+  await expect(page.getByTestId('shelf-row')).toHaveCount(3);
 }
 
 /* ------------------------------------------------------------------ 01, 02 */
@@ -349,7 +386,7 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(steps).toContainText('Front');
     await expect(steps).toContainText('Ingredients');
     await expect(
-      page.getByText("Label photos are read by Google Gemini to get the ingredients. We don't keep them. Photos of your skin never leave your phone."),
+      page.getByText('Label photos and three of your answers (shade, how long, hair removal) are read by AI services (Google Gemini, with backups). Google may use free-tier data to improve its products. Skin photos never leave this phone.'),
     ).toBeVisible();
     await expect(page.getByText(/barcode/i)).toHaveCount(0);
   });
@@ -374,10 +411,9 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(page.locator('[data-active="true"]')).toHaveText('Glycolic Acid');
     await expect(page.getByText('Glycolic acid: an exfoliating acid, like the roll-on')).toBeVisible();
     await expect(page.getByText('Parfum: fragrance')).toBeVisible();
-    // The add button stays off until where and when are chosen, and says so.
-    await expect(page.getByTestId('confirm-hint')).toHaveText('Pick where and when you use it to add it.');
-    await page.getByTestId('chip-underarm').click();
+    // The add button stays off until a time is chosen, and says so. There is no "where" question.
     await expect(page.getByTestId('confirm-hint')).toHaveText('Pick when you use it to add it.');
+    await expect(page.getByTestId('chip-underarm')).toHaveCount(0);
     await page.getByTestId('chip-night').click();
     await expect(page.getByTestId('confirm-hint')).toHaveCount(0);
   });
@@ -418,7 +454,7 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     expect(seen.filter((u) => u.includes('/api/'))).toEqual([]);
   });
 
-  test('AC-04b-2 and 04b-4: add is disabled until a place and a time; an antiperspirant asks sweat or smell first', async ({ page }) => {
+  test('AC-04b-2 and 04b-4: add is disabled until a time; an antiperspirant asks sweat or smell first', async ({ page }) => {
     const mock = await setup(page);
     mock.current = FIXTURES.spray;
     await fitCheck(page, RIYA);
@@ -428,8 +464,6 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
     const add = page.getByTestId('primary');
     await expect(add).toHaveAttribute('aria-disabled', 'true');
-    await page.getByTestId('chip-underarm').click();
-    await expect(add).toHaveAttribute('aria-disabled', 'true'); // still no time
     await page.getByTestId('chip-morning').click();
     await expect(add).not.toHaveAttribute('aria-disabled', 'true');
     await add.click();
@@ -453,26 +487,42 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await page.getByText("Something's off? Fix a word or retake").click();
     await page.getByLabel('Ingredient 2').fill('Lactic Acid');
     await expect(page.getByText('Lactic acid: an exfoliating acid, like the roll-on')).toBeVisible();
-    await page.getByTestId('chip-face').click();
     await page.getByTestId('chip-night').click();
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf$/);
     await expect(page.getByTestId('shelf-row')).toContainText('Lactic acid');
+    // An edited list is judged again from text on "Looks right" (spec 3.4).
+    await expect.poll(() => mock.bodies.filter((b) => b.kind === 'review-text').length).toBe(1);
     await expect.poll(async () => (await eventsNamed(page, 'label_read_confirmed')).map((e) => e.edited)).toEqual([true]);
   });
 
-  test('AC-04-3: tapping a row edits where and when, or removes the product', async ({ page }) => {
-    await setup(page);
+  test('spec 3.3-3.4: the photo call returns the review; ticking stung re-checks it; a failed check still adds the product', async ({ page }) => {
+    const mock = await setup(page);
     await fitCheck(page, RIYA);
-    await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
+    await expect(page.getByRole('heading', { name: 'What touches your underarms?' })).toBeVisible();
+    await addLabelProduct(page, mock, 'toner', { time: 'night' });
+    expect(mock.bodies.filter((b) => b.kind === 'review-text')).toHaveLength(0); // the photo call already judged it
+    const ing = mock.bodies.find((b) => b.kind === 'ingredients') as { context: { her: Record<string, string>; target: { name: string } } };
+    expect(ing.context.her).toEqual({ shade: 'moderate', duration: 'year-plus', hairRemoval: 'razor' });
+    expect(ing.context.target.name).toBe('4% AHA BHA Underarm Roll On');
+    await addLabelProduct(page, mock, 'cream', { time: 'now-and-then', stung: true });
+    expect(mock.bodies.filter((b) => b.kind === 'review-text')).toHaveLength(1);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await expect(page.getByTestId('shelf-row')).toHaveCount(3);
+  });
+
+  test('AC-04-3: tapping a row edits when, or removes the product', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    await addCatalogProduct(page, mock, 'bw-niacinamide-lotion', { time: 'morning' });
     await page.getByTestId('shelf-row').click();
-    await page.getByRole('dialog').getByTestId('chip-face').click();
     await page.getByRole('dialog').getByTestId('chip-night').click();
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('shelf-row')).toContainText('Body, face · Night');
+    await expect(page.getByTestId('shelf-row')).toContainText('Underarms · Night');
     await expect
       .poll(async () => (await eventsNamed(page, 'shelf_item_edited')).map((e) => e.field).sort())
-      .toEqual(['areas', 'time']);
+      .toEqual(['time']);
     await page.getByTestId('shelf-row').click();
     await page.getByTestId('remove-item').click();
     await expect(page.getByTestId('shelf-row')).toHaveCount(0);
@@ -489,9 +539,9 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     const rows = page.getByTestId('shelf-row');
     await expect(rows.nth(0)).toContainText('Glow 7% Glycolic Toner');
     await expect(rows.nth(0)).toContainText('Glycolic acid');
-    await expect(rows.nth(0)).toContainText('Face, underarms · Night');
+    await expect(rows.nth(0)).toContainText('Underarms · Night');
     await expect(rows.nth(1)).toContainText('Underarms · Morning · stung once');
-    await expect(rows.nth(3)).toContainText('Niacinamide');
+    await expect(rows).toHaveCount(3);
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf\/answer$/);
     await expect(page.getByTestId('running-head')).toHaveText('Right Start · Your shelf');
@@ -620,10 +670,10 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
 
 test.describe('05 and 05b variants', () => {
   test('AC-05-5 and AC-05b-8: a steroid on underarms is listed first, the doctor link leads, buy still works', async ({ page }) => {
-    await setup(page);
+    const mock = await setup(page);
     await fitCheck(page, RIYA);
-    await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
-    await addTypedProduct(page, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { areas: ['underarm'], time: 'night' });
+    await addCatalogProduct(page, mock, 'bw-niacinamide-lotion', { time: 'morning' });
+    await addTypedProduct(page, mock, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { time: 'night' });
     await page.getByTestId('primary').click();
     const rows = page.getByTestId('answer-row');
     await expect(rows.nth(0)).toContainText('Stop and ask a doctor');

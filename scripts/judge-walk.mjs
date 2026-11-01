@@ -118,7 +118,7 @@ await step('confirm-button-before-chips', async () => {
   return `primary state with no chips: ${dis}; hint: ${await tid('confirm-hint').innerText().catch(() => 'none')}`;
 });
 await step('confirm-add', async () => {
-  await tid('chip-underarm').click(); await tid('chip-night').click(); await tid('primary').click();
+  await tid('chip-night').click(); await tid('primary').click();
   if (await page.getByTestId(/^sweat-/).first().isVisible().catch(() => false)) await page.getByTestId(/^sweat-/).first().click();
   await page.waitForURL(/check\/shelf$/);
 });
@@ -127,7 +127,7 @@ await step('typed-deo', async () => {
   await tid('typed-name').fill('Fresh Bloom Deo Spray');
   await tid('typed-ingredients').fill('Butane, Alcohol Denat., Aluminum Chlorohydrate, Parfum, Isopropyl Myristate');
   await tid('type-continue').click(); await page.waitForURL(/shelf\/confirm/);
-  await tid('chip-underarm').click(); await tid('chip-morning').click(); await tid('chip-stung').click(); await tid('primary').click();
+  await tid('chip-morning').click(); await tid('chip-stung').click(); await tid('primary').click();
   const sweat = page.locator('[data-testid^="sweat-"]');
   if (await sweat.first().isVisible({ timeout: 1500 }).catch(() => false)) { await page.screenshot({ path: path.join(OUT, `${String(n + 1).padStart(2, '0')}-sweat-question.png`) }); await sweat.first().click(); }
   await page.waitForURL(/check\/shelf$/);

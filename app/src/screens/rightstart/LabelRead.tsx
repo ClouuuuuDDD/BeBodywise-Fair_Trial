@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import type { BodyArea, ShelfItem, UseTime } from '../../contracts';
+import type { ShelfItem, ShelfReview, UseTime } from '../../contracts';
 import { classesOf, classifyIngredients, makeShelfItem } from '../../engine';
+import { failedReview, reviewShelfItem } from '../../review';
 import { track } from '../../state';
-import { addShelfItem, newItemId, useRightStart } from '../../state/rightStart';
+import { addShelfItem, newItemId, reviewContextFor, todayISO, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, CheckChip, Icon, Mascot, PrimaryButton, ResultCard, Sheet, TextLink } from '../../ui';
 import { activeLines, chipClass, toneOf } from './components/activeInfo';
 import { mascotForItem } from './components/mascotFor';
@@ -36,7 +37,6 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
   const [nextKey, setNextKey] = useState(draft.inci.length);
   const [newText, setNewText] = useState('');
   const [editing, setEditing] = useState(false);
-  const [areas, setAreas] = useState<BodyArea[]>([]);
   const [time, setTime] = useState<UseTime | undefined>();
   const [stung, setStung] = useState(false);
   const [askSweat, setAskSweat] = useState(false);
@@ -47,24 +47,39 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
   const edited = name.trim() !== draft.product.trim() || list.join('|') !== draft.inci.join('|');
   const displayName = name.trim() || 'New product';
 
-  const preview: ShelfItem = makeShelfItem({ id: 'draft', product: displayName, source: draft.source, inci: list, areas: [], times: 'night', catalogId: draft.catalogId });
+  const preview: ShelfItem = makeShelfItem({ id: 'draft', product: displayName, source: draft.source, inci: list, areas: ['underarm'], times: 'night', catalogId: draft.catalogId });
 
   const meta = draft.fromPhotos ? `Read from your 2 photos · ${classified.length} ingredients` : `${classified.length} ingredients`;
-  const ready = areas.length > 0 && time !== undefined;
+  const ready = time !== undefined;
+  const [checking, setChecking] = useState(false);
+  const abort = useRef<AbortController | null>(null);
+  const listEdited = list.join('|') !== draft.inci.join('|');
+  // Spec 3.4: an edited list or a new "stung" means the photo's review is stale; re-judge from text on "Looks right".
+  const current: ShelfReview | undefined = draft.review && (listEdited || stung) ? { ...draft.review, status: 'stale' } : draft.review;
+  const needsReview = !current || current.status !== 'ok';
 
   async function commit(antiperspirantFor?: 'sweat' | 'smell' | 'both') {
     if (!ready || !time) return;
-    const item = makeShelfItem({
+    const base = makeShelfItem({
       id: newItemId(),
       product: displayName,
       source: draft.source,
       inci: list,
-      areas,
+      areas: ['underarm'],
       times: time,
       stung,
       catalogId: draft.catalogId,
       antiperspirantFor,
     });
+    let review = current;
+    if (needsReview) {
+      setChecking(true);
+      abort.current = new AbortController();
+      review = await reviewShelfItem(base, reviewContextFor({ frontName: displayName, when: time, stung }), todayISO(), { signal: abort.current.signal });
+      abort.current = null;
+      setChecking(false);
+    }
+    const item: ShelfItem = { ...base, review: review ?? failedReview(todayISO()) };
     track('label_read_confirmed', '04b', { edited, classes: item.classes });
     track('shelf_item_added', '04b', {
       source: item.source,
@@ -81,7 +96,7 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
 
   function primary() {
     if (!ready) return;
-    if (classes.includes('antiperspirant') && areas.includes('underarm')) {
+    if (classes.includes('antiperspirant')) {
       setAskSweat(true);
       return;
     }
@@ -185,20 +200,6 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
       </ResultCard>
 
       <section className={styles.block}>
-        <h2 className={styles.q}>{confirm.where}</h2>
-        <div className={styles.chipRow}>
-          {confirm.whereOptions.map((o) => (
-            <CheckChip
-              key={o.value}
-              value={o.value}
-              label={o.label}
-              checked={areas.includes(o.value as BodyArea)}
-              onChange={(on) => setAreas((a) => (on ? [...a, o.value as BodyArea] : a.filter((x) => x !== o.value)))}
-            />
-          ))}
-        </div>
-      </section>
-      <section className={styles.block}>
         <h2 className={styles.q}>{confirm.when}</h2>
         <div className={styles.chipRow}>
           {confirm.whenOptions.map((o) => (
@@ -213,13 +214,17 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
       <BottomBar>
         {!ready ? (
           <p className={styles.needHint} role="status" data-testid="confirm-hint">
-            {areas.length === 0 && time === undefined ? confirm.needBoth : areas.length === 0 ? confirm.needWhere : confirm.needWhen}
+            {confirm.needWhen}
           </p>
         ) : null}
-        <PrimaryButton onClick={primary} disabled={!ready} size="md">
-          {confirm.primary}
+        <PrimaryButton onClick={primary} disabled={!ready} loading={checking} size="md">
+          {checking ? confirm.checking : confirm.primary}
         </PrimaryButton>
-        {editing ? (
+        {checking ? (
+          <TextLink onClick={() => abort.current?.abort()} data-testid="add-unchecked">
+            {confirm.addUnchecked}
+          </TextLink>
+        ) : editing ? (
           <TextLink to="/check/shelf/add" data-testid="retake">
             Retake the photos
           </TextLink>
