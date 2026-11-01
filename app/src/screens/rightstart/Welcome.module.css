@@ -30,13 +30,20 @@
   color: var(--ink-soft);
 }
 
-.range {
-  display: flex;
-  gap: 10px;
+.rangeScroll {
+  position: relative;
   margin: 14px -16px 0;
   padding: 2px 16px 8px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+}
+
+.range {
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 

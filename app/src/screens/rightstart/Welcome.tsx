@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import type { BodywiseProductId, Channel } from '../../contracts';
 import { AppShell, BottomBar, DrMehr, PrimaryButton, Sparkle, TextLink } from '../../ui';
@@ -26,6 +26,17 @@ export default function Welcome() {
   const src = channelFrom(params.get('src'));
   const productParam = params.get('product');
 
+  const selected: BodywiseProductId = productParam !== null ? parseSelectedProduct(productParam) : s.selectedProductId ?? parseSelectedProduct(null);
+  const rangeRef = useRef<HTMLDivElement>(null);
+
+  // Bring her pick into view inside the strip itself (never scrolls the page).
+  useEffect(() => {
+    const strip = rangeRef.current;
+    const card = strip?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!strip || !card) return;
+    strip.scrollLeft = Math.max(0, card.offsetLeft - (strip.clientWidth - card.offsetWidth) / 2);
+  }, [selected, s.ready]);
+
   useEffect(() => {
     if (productParam !== null) selectProduct(parseSelectedProduct(productParam));
   }, [productParam]);
@@ -45,7 +56,6 @@ export default function Welcome() {
   if (src === 'box-qr') return <Navigate to="/start?src=box-qr" replace />;
 
   const channel = src ?? s.channel;
-  const selected: BodywiseProductId = productParam !== null ? parseSelectedProduct(productParam) : s.selectedProductId ?? parseSelectedProduct(null);
   const name = catalog.products.find((p) => p.id === selected)?.name ?? RANGE_NAMES[selected];
 
   return (
@@ -57,7 +67,8 @@ export default function Welcome() {
         </h1>
         <p className={styles.lead}>{welcome.range(catalog.products.length)}</p>
       </div>
-      <ul className={styles.range} data-testid="pick-range" aria-label={welcome.rangeLabel} data-scroll-x tabIndex={0}>
+      <div ref={rangeRef} className={styles.rangeScroll} role="region" aria-label={welcome.rangeLabel} data-scroll-x tabIndex={0}>
+      <ul className={styles.range} data-testid="pick-range" role="list">
         {catalog.products.map((p) => {
           const id = p.id as BodywiseProductId;
           const mine = id === selected;
@@ -67,11 +78,17 @@ export default function Welcome() {
               <span className={styles.rangeName}>{RANGE_NAMES[id]}</span>
               <span className={styles.rangePrice}>{`Rs ${productPrice(id)}`}</span>
               <span className={styles.rangeFor}>{p.for}</span>
-              {mine ? <span className={styles.rangeMine}>{welcome.yourPick}</span> : null}
+              {mine ? (
+                <>
+                  <span className={styles.rangeMine} aria-hidden="true">{welcome.yourPick}</span>
+                  <span className="sr-only">{welcome.yourPick}</span>
+                </>
+              ) : null}
             </li>
           );
         })}
       </ul>
+      </div>
       <ul className={styles.facts}>
         <li>
           <FactIcon d="clock" />

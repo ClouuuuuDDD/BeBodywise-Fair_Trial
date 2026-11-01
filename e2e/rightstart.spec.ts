@@ -244,7 +244,9 @@ test.describe('01 Product page door and 02 Welcome', () => {
     await setup(page);
     await page.goto('/?product=bw-kit-6');
     await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit \(Rs 859\)/ })).toBeVisible();
-    await expect(page.getByTestId('pick-range').locator('[aria-current="true"]')).toContainText('Advanced Underarm Pigmentation Kit');
+    const mine = page.getByTestId('pick-range').locator('[aria-current="true"]');
+    await expect(mine).toContainText('Advanced Underarm Pigmentation Kit');
+    await expect(mine).toBeInViewport();
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit/ })).toBeVisible(); // remembered
     await page.goto('/?product=not-a-product');
