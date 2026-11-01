@@ -24,6 +24,7 @@ import type {
 } from '../contracts';
 import { DEFAULT_ANCHOR_PRODUCT, KILL_TEST_PASSED } from '../engine/config';
 import { openVariables, startPlan, trialClock, verdict as runVerdict } from '../engine';
+import { buildReviewContext, reviewShelfItem } from '../review';
 import { computeChange, noiseBandFromBursts } from '../photo/measure';
 import { getExample, updateExample, useExample } from './example';
 import { tourToday, useTour } from './tour';
@@ -436,4 +437,24 @@ export function photoUrl(photo: PhotoCapture | undefined): string | undefined {
     urls.set(photo.id, url);
   }
   return url;
+}
+
+/** Routine screen: she pauses or keeps a product the review flagged (spec 3.7). */
+export function setTrialChoice(itemId: string, choice: 'pause' | 'keep'): void {
+  mutatePlan((p) => ({ ...p, shelf: p.shelf.map((i) => (i.id === itemId ? { ...i, trialChoice: choice } : i)) }));
+}
+
+/** Routine screen "Retry" for a product that was never checked. Example mode never calls the network. */
+export async function retryPlanReview(itemId: string): Promise<void> {
+  const plan = activePlan();
+  const item = plan?.shelf.find((i) => i.id === itemId);
+  if (!plan || !item || inExample()) return;
+  const context = buildReviewContext({
+    target: productOf(plan),
+    fit: plan.fit,
+    shelf: plan.shelf.filter((i) => i.id !== itemId),
+    thisProduct: { when: item.times, stung: item.stung },
+  });
+  const review = await reviewShelfItem(item, context, activeToday());
+  mutatePlan((p) => ({ ...p, shelf: p.shelf.map((i) => (i.id === itemId ? { ...i, review } : i)) }));
 }
