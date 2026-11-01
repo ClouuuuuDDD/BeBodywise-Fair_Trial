@@ -2,7 +2,7 @@
  * Privacy check (E7): nothing personal or third-party ships in the app, and the example trial talks to nobody.
  *  - built dist/ and app/src hold no Indian mobile number (10 digits starting 6-9, optional +91 / 0 / spaces / dashes);
  *  - no real competitor brand name (from research/coded/aggregates.json when present, plus a fixed list);
- *  - during the whole example trial the only requests are the app itself, Google Fonts and /api/read-label.
+ *  - during the whole example trial the only requests are the app itself and Google Fonts (no AI call).
  */
 import { expect, test } from '@playwright/test';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -64,7 +64,7 @@ test.describe('privacy', () => {
     expect(hits).toEqual([]);
   });
 
-  test('the example trial makes no request except the app, Google Fonts and /api/read-label', async ({ page }) => {
+  test('the example trial makes no request except the app and Google Fonts (no AI call)', async ({ page }) => {
     const seen: string[] = [];
     page.on('request', (r) => {
       const u = new URL(r.url());
@@ -81,7 +81,82 @@ test.describe('privacy', () => {
     const yes = page.getByTestId('primary');
     if (await yes.count()) await yes.click();
     await page.waitForTimeout(300);
-    const allowed = (s: string) => /^(GET|POST) (fonts\.googleapis\.com|fonts\.gstatic\.com)\//.test(s) || s === 'POST localhost/api/read-label' || s === 'POST 127.0.0.1/api/read-label';
+    const allowed = (s: string) => /^(GET|POST) (fonts\.googleapis\.com|fonts\.gstatic\.com)\//.test(s);
     expect(seen.filter((s) => !allowed(s)), 'unexpected requests').toEqual([]);
+  });
+
+  test('every /api/read-label body has only the documented keys, and her answers are only shade, duration, hair removal (spec 7, D7)', async ({ page }) => {
+    const bodies: Record<string, unknown>[] = [];
+    await page.route((url) => !['localhost', '127.0.0.1'].includes(url.hostname), (r) => r.abort());
+    await page.route('**/api/read-label', async (route) => {
+      const b = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>;
+      bodies.push(b);
+      const review = { status: 'ok', provider: 'gemini', model: 'm', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31', productType: 'other', culprits: [], mayWorsenDarkness: false, action: 'keep', actionWhy: 'Gentle.', confidence: 'high' };
+      const reply =
+        b.kind === 'front' ? { ok: true, kind: 'front', name: 'Test Lotion', brand: 'Test', provider: 'gemini' }
+        : b.kind === 'ingredients' ? { ok: true, kind: 'ingredients', ingredientsText: 'Aqua, Glycerin, Cetyl Alcohol, Parfum', review, provider: 'gemini' }
+        : { ok: true, kind: 'review-text', review, provider: 'gemini' };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(reply) });
+    });
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    await page.goto('/check/1');
+    for (const [v, next] of [['moderate', /\/check\/2$/], ['year-plus', /\/check\/3$/], ['razor', /\/check\/4$/], ['yes', /\/check\/5$/], ['no', /\/check\/shelf$/]] as const) {
+      await page.getByTestId(`option-${v}`).click();
+      await expect(page).toHaveURL(next);
+    }
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('photo-upload').setInputFiles({ name: 'l.png', mimeType: 'image/png', buffer: png });
+    await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
+    await page.getByTestId('photo-upload').setInputFiles({ name: 'l.png', mimeType: 'image/png', buffer: png });
+    await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
+    await page.getByTestId('chip-night').click();
+    await page.getByTestId('chip-stung').click(); // forces a review-text call
+    await page.getByTestId('primary').click();
+    await expect(page).toHaveURL(/\/check\/shelf$/);
+
+    // Second product (typed), so the review-text call carries the first product in shelfSoFar.
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Second Cream');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page).toHaveURL(/\/check\/shelf$/);
+
+    // front + ingredients + review-text (stung) for product 1, review-text for the typed product.
+    await expect.poll(() => bodies.length).toBeGreaterThanOrEqual(4);
+    expect(bodies.map((b) => b.kind).sort()).toEqual(['front', 'ingredients', 'review-text', 'review-text']);
+
+    type Ctx = { her?: Record<string, unknown>; target?: Record<string, unknown>; shelfSoFar?: Record<string, unknown>[]; thisProduct?: Record<string, unknown> };
+    const allowed: Record<string, string[]> = {
+      front: ['kind', 'image', 'mime'],
+      ingredients: ['kind', 'image', 'mime', 'context'],
+      'review-text': ['kind', 'ingredientsText', 'productName', 'context'],
+    };
+    let sawShelf = false;
+    for (const b of bodies) {
+      const kind = b.kind as string;
+      expect(Object.keys(b).every((k) => allowed[kind]!.includes(k)), JSON.stringify(Object.keys(b))).toBe(true);
+      if (kind === 'front') {
+        expect(b.context, 'front carries no context').toBeUndefined();
+      } else {
+        const ctx = b.context as Ctx | undefined;
+        expect(ctx, `${kind} must carry context`).toBeDefined();
+        expect(Object.keys(ctx!).sort()).toEqual(['her', 'shelfSoFar', 'target', 'thisProduct']);
+        expect(ctx!.her).toEqual({ shade: 'moderate', duration: 'year-plus', hairRemoval: 'razor' });
+        expect(Object.keys(ctx!.target ?? {}).sort()).toEqual(['ingredients', 'name']);
+        for (const k of Object.keys(ctx!.thisProduct ?? {})) expect(['frontName', 'stung', 'when']).toContain(k);
+        for (const item of ctx!.shelfSoFar ?? []) {
+          sawShelf = true;
+          expect(Object.keys(item).sort()).toEqual(['ingredients', 'name', 'stung', 'when']);
+        }
+      }
+      const { image: _image, ...rest } = b;
+      void _image;
+      expect(JSON.stringify(rest)).not.toMatch(/darkNeck|regularPeriods|pregnan|planCode|trialId|"id"|[a-z]Id"/);
+    }
+    expect(sawShelf, 'some body has a non-empty shelfSoFar').toBe(true);
   });
 });

@@ -5,7 +5,7 @@ import { catalog, catalogInci, classifyIngredients, productName, productPrice } 
 import { eventStatus, readLabelPhoto, readTypedIngredients } from '../../label';
 import type { LabelReadResult } from '../../label';
 import { track } from '../../state';
-import { setDraft, type ShelfDraft } from '../../state/rightStart';
+import { reviewContextFor, setDraft, type ShelfDraft } from '../../state/rightStart';
 import { AppShell, DrMehr, Icon, Mascot, PrimaryButton, Sheet, TextLink } from '../../ui';
 import { CameraCard } from './components/CameraCard';
 import { mascotForCatalog } from './components/mascotFor';
@@ -49,6 +49,11 @@ function catalogDraft(id: CatalogId): ShelfDraft {
     catalogId: id,
     fromPhotos: false,
   };
+}
+
+/** The front read if it has already finished, else null: the ingredients call should not wait on it. */
+function settled<T>(p: Promise<T> | undefined): Promise<T | null> {
+  return Promise.race([p ?? Promise.resolve(null), new Promise<null>((r) => setTimeout(() => r(null), 0))]);
 }
 
 /** Screen 04a: Add a product. Two label photos (front, ingredients), or type the name, or pick a Be Bodywise one. */
@@ -102,7 +107,9 @@ export default function AddProduct() {
   async function readIngredients(photo: Blob) {
     const id = ++run.current;
     setPhase('reading');
-    const result = await readLabelPhoto(photo, 'ingredients');
+    const early = await settled(front.current);
+    const frontName = early?.name ?? early?.brand ?? undefined;
+    const result = await readLabelPhoto(photo, 'ingredients', { context: reviewContextFor(frontName ? { frontName } : {}) });
     const frontRead = await (front.current ?? Promise.resolve(null));
     if (id !== run.current) return; // cancelled
     track('label_read_completed', '04a', {
@@ -125,6 +132,7 @@ export default function AddProduct() {
       source: 'label',
       inci: result.parse.ingredients.map((i) => i.inci),
       fromPhotos: true,
+      review: result.review ?? undefined,
     });
   }
 

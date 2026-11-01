@@ -16,6 +16,7 @@ import type {
   ReactionRecord,
   ReactionReport,
   ShelfItem,
+  ShelfReview,
   Verdict,
 } from '../contracts';
 import { DEFAULT_ANCHOR_PRODUCT, KILL_TEST_PASSED } from './config';
@@ -23,7 +24,8 @@ import { addDays } from './dates';
 import { fit } from './fit';
 import { pairRules } from './pairRules';
 import { pickProduct } from './pickProduct';
-import { makeShelfItem, shelfItemFromCatalog } from './shelf';
+import { makeShelfItem } from './shelf';
+import { openVariables } from './openVariables';
 import { rulesVersion } from './rulesVersion';
 import { startPlan } from './startPlan';
 import { triageReaction } from './triageReaction';
@@ -76,10 +78,15 @@ export const RIYA_FIT: FitAnswers = {
   regularPeriods: 'yes',
 };
 
-/** Riya's four shelf products, as a label read would return them (fictional brands). */
+const seeded = (r: Omit<ShelfReview, 'status' | 'provider' | 'model' | 'promptVersion' | 'reviewedOn'>): ShelfReview => ({
+  status: 'ok', provider: 'example', model: 'seeded', promptVersion: 'shelf-review-v1', reviewedOn: EXAMPLE_DATES.checkedOn, ...r,
+});
+
+/** Riya's three shelf products, as a label read would return them (fictional brands). */
 export function riyaShelf(): ShelfItem[] {
   return [
-    makeShelfItem({
+    {
+      ...makeShelfItem({
       id: 'riya-toner',
       product: 'Glow 7% Glycolic Toner',
       source: 'label',
@@ -88,7 +95,19 @@ export function riyaShelf(): ShelfItem[] {
       times: 'night',
       mascot: 'toner',
     }),
-    makeShelfItem({
+      review: seeded({
+        productType: 'toner-serum-acid',
+        culprits: [{ ingredient: 'Glycolic Acid', concern: 'acid', why: 'A second exfoliating acid on the same skin may over-exfoliate.' }],
+        mayWorsenDarkness: true,
+        darknessWhy: 'Over-exfoliation may irritate and leave darker marks.',
+        action: 'pause-during-trial',
+        actionWhy: 'Two acids on the same skin may irritate and blur whether the roll-on worked.',
+        confidence: 'high',
+      }),
+      trialChoice: 'keep',
+    },
+    {
+      ...makeShelfItem({
       id: 'riya-spray',
       product: 'Fresh Bloom Deo Spray',
       source: 'label',
@@ -99,7 +118,19 @@ export function riyaShelf(): ShelfItem[] {
       antiperspirantFor: 'smell',
       mascot: 'spray-can',
     }),
-    makeShelfItem({
+      review: seeded({
+        productType: 'deodorant-antiperspirant',
+        culprits: [{ ingredient: 'Alcohol Denat.', concern: 'drying-alcohol', why: 'Drying alcohol first in the list may sting freshly treated skin.' }],
+        mayWorsenDarkness: true,
+        darknessWhy: 'It has stung you, and repeated stinging may darken skin.',
+        action: 'pause-during-trial',
+        actionWhy: 'It stung you before. The roll-on works as a deodorant, so pause this for the trial.',
+        confidence: 'high',
+      }),
+      trialChoice: 'pause',
+    },
+    {
+      ...makeShelfItem({
       id: 'riya-cream',
       product: 'Silk Hair Removal Cream',
       source: 'label',
@@ -108,7 +139,15 @@ export function riyaShelf(): ShelfItem[] {
       times: 'now-and-then',
       mascot: 'hair-removal',
     }),
-    shelfItemFromCatalog('bw-niacinamide-lotion', { id: 'riya-lotion', areas: ['body'], times: 'morning' }),
+      review: seeded({
+        productType: 'hair-removal',
+        culprits: [{ ingredient: 'Potassium Thioglycolate', concern: 'depilatory', why: 'Hair removal chemicals leave skin sensitive for a while.' }],
+        mayWorsenDarkness: false,
+        action: 'different-time',
+        actionWhy: 'Keep it at least two days away from the roll-on.',
+        confidence: 'high',
+      }),
+    },
   ];
 }
 
@@ -223,6 +262,7 @@ function build(stop: ExampleStop, stage: Stage): ExampleState {
       shadeNow: stage.shadeNow,
       hormonePattern: fitResult.hormoneNote,
       killTestPassed: KILL_TEST_PASSED,
+      openVariables: openVariables(shelf, productId),
       today,
     });
     plan.verdict = v;

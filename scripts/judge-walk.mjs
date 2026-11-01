@@ -34,7 +34,7 @@ const INNER_ARM = photo([195, 148, 120]);
 const UNDERARM_LIGHTER = photo([188, 140, 115]);
 const LABEL = fs.readFileSync('e2e/fixtures/label-test.jpg');
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
 // VIEW=WxH sets the visible browser area (default 390x844).
 const [VW, VH] = (process.env.VIEW ?? '390x844').split('x').map(Number);
 const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
@@ -46,6 +46,13 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('requestfailed', (r) => { if (!/fonts\.g|analytics/.test(r.url())) errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`); });
 page.on('response', (r) => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
+
+// Which provider and model answered each label read (never the image or any key).
+page.on('response', async (r) => {
+  if (!r.url().endsWith('/api/read-label')) return;
+  const j = await r.json().catch(() => null);
+  if (j) console.log(`read-label: HTTP ${r.status()} kind=${j.kind} provider=${j.provider} model=${j.model ?? '-'} name=${JSON.stringify(j.name ?? '')} action=${j.review?.action ?? '-'}`);
+});
 
 let n = 0;
 async function shot(name) {
@@ -118,22 +125,49 @@ await step('confirm-button-before-chips', async () => {
   return `primary state with no chips: ${dis}; hint: ${await tid('confirm-hint').innerText().catch(() => 'none')}`;
 });
 await step('confirm-add', async () => {
-  await tid('chip-underarm').click(); await tid('chip-night').click(); await tid('primary').click();
+  await tid('chip-night').click(); await tid('primary').click();
   if (await page.getByTestId(/^sweat-/).first().isVisible().catch(() => false)) await page.getByTestId(/^sweat-/).first().click();
   await page.waitForURL(/check\/shelf$/);
+});
+let dishName = ''; // the dishwash product's name as read from its front, to find its own row on 05
+await step('dishwash-label', async () => {
+  if (!process.env.DISHWASH) return 'skipped (DISHWASH not set)';
+  const t0 = Date.now();
+  await tid('add-product').click();
+  await tid('photo-upload').setInputFiles(process.env.DISHWASH);
+  await tid('photo-upload').setInputFiles(process.env.DISHWASH);
+  await page.waitForURL(/\/check\/shelf\/confirm/, { timeout: 60_000 });
+  const readMs = Date.now() - t0;
+  dishName = (await page.locator('h1').first().innerText()).trim();
+  await tid('chip-morning').click(); await tid('primary').click();
+  await page.waitForURL(/\/check\/shelf$/, { timeout: 60_000 });
+  return `read took ${readMs} ms; name ${JSON.stringify(dishName)}`;
 });
 await step('typed-deo', async () => {
   await tid('add-product').click(); await tid('type-name').click();
   await tid('typed-name').fill('Fresh Bloom Deo Spray');
   await tid('typed-ingredients').fill('Butane, Alcohol Denat., Aluminum Chlorohydrate, Parfum, Isopropyl Myristate');
   await tid('type-continue').click(); await page.waitForURL(/shelf\/confirm/);
-  await tid('chip-underarm').click(); await tid('chip-morning').click(); await tid('chip-stung').click(); await tid('primary').click();
+  await tid('chip-morning').click(); await tid('chip-stung').click(); await tid('primary').click();
   const sweat = page.locator('[data-testid^="sweat-"]');
   if (await sweat.first().isVisible({ timeout: 1500 }).catch(() => false)) { await page.screenshot({ path: path.join(OUT, `${String(n + 1).padStart(2, '0')}-sweat-question.png`) }); await sweat.first().click(); }
   await page.waitForURL(/check\/shelf$/);
   return `rows: ${await tid('shelf-row').count()}`;
 });
-await step('shelf-answer', async () => { await tid('primary').click(); await page.waitForURL(/shelf\/answer/); });
+await step('shelf-answer', async () => {
+  const t0 = Date.now();
+  await tid('primary').click(); await page.waitForURL(/shelf\/answer/);
+  await tid('review-row').first().waitFor({ timeout: 40_000 });
+  const actions = await tid('review-row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-action')));
+  console.log('review actions', actions);
+  console.log('review rows', await tid('review-row').evaluateAll((rows) => rows.map((r) => `${r.querySelector('b, strong, h3, p')?.textContent?.slice(0, 40)} -> ${r.getAttribute('data-action')}`)));
+  if (process.env.DISHWASH) {
+    const dishRow = tid('review-row').filter({ hasText: dishName });
+    if (!dishName || (await dishRow.count()) !== 1) throw new Error(`dishwash row not found (name ${JSON.stringify(dishName)})`);
+    if ((await dishRow.getAttribute('data-action')) === 'keep') throw new Error('dishwash bar came out as Keep');
+  }
+  return `review actions: ${actions.join(',')} (${Date.now() - t0} ms)`;
+});
 await step('match', async () => {
   await tid('primary').click(); await page.waitForURL(/check\/match/);
   if (await tid('pregnancy-no').isVisible().catch(() => false)) await tid('pregnancy-no').click();
@@ -144,7 +178,16 @@ await step('buy-demo-to-ch2', async () => { await page.getByText('Buy on Be Body
 await closeCard();
 await step('plan-ready', async () => { await tid('primary').waitFor(); return await tid('primary').innerText(); });
 await step('routine', async () => { await tid('primary').click(); await page.waitForURL(/start\/routine/); });
-await step('photo-underarm', async () => { await tid('primary').click(); await page.waitForURL(/start\/photo/); });
+await step('photo-underarm', async () => {
+  await tid('primary').click();
+  const cont = page.getByRole('dialog').getByRole('button', { name: 'Continue' });
+  if (await cont.isVisible({ timeout: 1500 }).catch(() => false)) {
+    // "Your clean trial" sheet: choose the first option (e.g. "I'll pause it") for every flagged product.
+    for (const row of await tid('clean-row').all()) await row.getByRole('checkbox').first().click();
+    await cont.click();
+  }
+  await page.waitForURL(/start\/photo/);
+});
 await step('photo-uploaded-both', async () => {
   await upload(UNDERARM_DARK); await page.waitForURL(/site=inner-arm/, { timeout: 20000 });
   await upload(INNER_ARM); await page.waitForURL(/photo\/check/, { timeout: 20000 });

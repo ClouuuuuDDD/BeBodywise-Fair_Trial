@@ -43,6 +43,7 @@ export type IngredientClass =
   | 'fragrance'
   | 'physical-scrub'
   | 'bleach'
+  | 'mercury'
   | 'soothing'
   | 'sunscreen';
 
@@ -129,7 +130,7 @@ export interface ClassifiedIngredient {
 export interface ShelfItem {
   /** Local id (random), stable for the life of the plan. */
   id: string;
-  /** Product name as she sees it (label front, catalog, or typed). Never leaves the phone. */
+  /** Product name as she sees it (label front, catalog, or typed). Sent to the shelf review as text (spec D7); never in analytics. */
   product: string;
   /** Catalog id when it is a Bodywise product, else undefined. */
   catalogId?: CatalogId;
@@ -149,6 +150,10 @@ export interface ShelfItem {
   antiperspirantFor?: 'sweat' | 'smell' | 'both';
   /** Mascot key from ingredient-rules.json product_types (art lookup), if known. */
   mascot?: string;
+  /** AI review of this product against her trial product (spec 4). Absent on items saved before the review existed. */
+  review?: ShelfReview;
+  /** Her choice on the routine screen for a product the review says to pause or stop. */
+  trialChoice?: 'pause' | 'keep';
 }
 
 /** The five shelf answers (spec v2, H-20); keys of `answers` in ingredient-rules.json. */
@@ -168,6 +173,80 @@ export interface ShelfAnswer {
   ingredient?: string;
   /** Lower number wins when several rules match (1 = stop and ask). */
   priority: number;
+}
+
+/** What the shelf review tells her to do with one product (spec 3.5). */
+export type ReviewAction = 'keep' | 'different-time' | 'pause-during-trial' | 'stop-on-skin' | 'ask-doctor';
+
+/** Why an ingredient was flagged. */
+export type ReviewConcern =
+  | 'acid'
+  | 'retinoid'
+  | 'benzoyl-peroxide'
+  | 'vitamin-c'
+  | 'fragrance'
+  | 'essential-oil'
+  | 'drying-alcohol'
+  | 'harsh-surfactant'
+  | 'high-ph-alkali'
+  | 'depilatory'
+  | 'antiperspirant'
+  | 'physical-scrub'
+  | 'bleach'
+  | 'hydroquinone'
+  | 'steroid'
+  | 'mercury'
+  | 'other-irritant';
+
+/** What kind of product the label is from. */
+export type ProductType =
+  | 'deodorant-antiperspirant'
+  | 'body-lotion'
+  | 'hair-removal'
+  | 'shaving'
+  | 'scrub-exfoliant'
+  | 'toner-serum-acid'
+  | 'soap-bodywash'
+  | 'household-not-for-skin'
+  | 'other';
+
+/** One flagged ingredient, quoted from her label. */
+export interface ReviewCulprit {
+  ingredient: string;
+  concern: ReviewConcern;
+  why: string;
+}
+
+/** The stored AI review of one shelf product (spec 4). */
+export interface ShelfReview {
+  /** ok = answered; stale = her list changed since; failed = no provider answered. */
+  status: 'ok' | 'stale' | 'failed';
+  /** e.g. 'gemini', 'workers-ai', 'openrouter', 'groq', 'example'. */
+  provider?: string;
+  /** Exact model id that answered. */
+  model?: string;
+  /** e.g. 'shelf-review-v1'; 'none' on a failed review. */
+  promptVersion: string;
+  /** YYYY-MM-DD. */
+  reviewedOn: ISODate;
+  productType?: ProductType;
+  culprits: ReviewCulprit[];
+  mayWorsenDarkness: boolean;
+  darknessWhy?: string;
+  /** Absent when status is 'failed'. */
+  action?: ReviewAction;
+  actionWhy?: string;
+  confidence?: 'high' | 'low';
+  /** True when code overrode the AI's action (red line, spec 5.4). */
+  redLineApplied?: boolean;
+}
+
+/** Everything the review call may see besides the label itself (spec 5.1, D7). */
+export interface ReviewContext {
+  target: { name: string; ingredients: string };
+  her: { shade?: ShadeLevel; duration?: DarknessDuration; hairRemoval?: HairRemoval };
+  shelfSoFar: { name: string; ingredients: string; when: UseTime; stung: boolean }[];
+  thisProduct: { frontName?: string; when?: UseTime; stung?: boolean };
 }
 
 /* ------------------------------------------------------------------ */
@@ -590,6 +669,8 @@ export interface VerdictInput {
   killTestPassed: boolean;
   /** Today, for newDate. */
   today: ISODate;
+  /** Shelf products she kept using against the review's advice, or that were never checked (spec 3.8). */
+  openVariables?: { name: string; why: 'kept' | 'unchecked' }[];
 }
 
 /* ------------------------------------------------------------------ */

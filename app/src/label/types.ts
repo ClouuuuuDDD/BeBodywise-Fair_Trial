@@ -1,3 +1,4 @@
+import type { ShelfReview } from '../contracts';
 import type { LabelParse } from '../engine/classifyIngredients';
 
 /** Which side of the pack the photo shows. */
@@ -6,17 +7,19 @@ export type LabelKind = 'front' | 'ingredients';
 /** Wire response of POST /api/read-label (mirrors functions/_lib/readLabelCore.ts). */
 export interface ReadLabelApiResponse {
   ok: boolean;
-  kind: LabelKind;
+  kind: 'front' | 'ingredients' | 'review-text';
   name?: string;
   brand?: string;
   ingredientsText?: string;
-  provider: 'gemini' | 'openrouter' | 'none';
+  provider: 'gemini' | 'workers-ai' | 'openrouter' | 'groq' | 'none';
+  model?: string;
+  review?: ShelfReview;
   error?: string;
   message?: string;
 }
 
 /** Where the text came from. */
-export type LabelSource = 'gemini' | 'openrouter' | 'tesseract' | 'cached' | 'typed';
+export type LabelSource = 'gemini' | 'workers-ai' | 'groq' | 'openrouter' | 'tesseract' | 'cached' | 'typed';
 
 /**
  * Outcome of one read.
@@ -46,4 +49,6 @@ export interface LabelReadResult {
   httpStatus: number | null;
   /** True when the in-browser OCR produced the text. */
   usedOcr: boolean;
+  /** AI review from the same call (ingredients side only); null when OCR or typing produced the text. */
+  review: ShelfReview | null;
 }

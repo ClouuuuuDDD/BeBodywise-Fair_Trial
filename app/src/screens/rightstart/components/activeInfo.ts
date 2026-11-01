@@ -31,6 +31,7 @@ const TONES: Record<IngredientClass, ClassTone> = {
   fragrance: BUTTER,
   'physical-scrub': PEACH,
   bleach: ROSE,
+  mercury: ROSE,
   soothing: MINT,
   sunscreen: BUTTER,
 };

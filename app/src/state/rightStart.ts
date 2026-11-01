@@ -8,7 +8,6 @@
  */
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import type {
-  BodyArea,
   BodywiseProductId,
   CatalogId,
   Channel,
@@ -19,17 +18,20 @@ import type {
   Plan,
   PregnancyAnswer,
   ProductPick,
+  ReviewContext,
   ShelfAnswer,
   ShelfItem,
+  ShelfReview,
   ShelfSource,
   UseTime,
 } from '../contracts';
 import { DEFAULT_ANCHOR_PRODUCT } from '../engine/config';
 import { fit as runFit, makePlanCode, pairRules, pickProduct, rulesVersion, startPlan } from '../engine';
+import { buildReviewContext, reviewShelfItem } from '../review';
 import { randomUuid, requestPersistence } from '../store';
 import { reloadLive } from './trial';
 import { getStore, track } from './vault';
-import { useExample } from './example';
+import { getExample, useExample } from './example';
 
 const DRAFT_KEY = 'fairtrial.rightstart.draft';
 
@@ -45,6 +47,8 @@ export interface ShelfDraft {
   catalogId?: CatalogId;
   /** True when it came from two label photos (changes the meta line). */
   fromPhotos: boolean;
+  /** Review from the ingredients photo call, if it answered. */
+  review?: ShelfReview;
 }
 
 /** Everything the Right Start screens read. */
@@ -65,6 +69,8 @@ export interface RightStartState {
   plan: Plan | undefined;
   /** Product being added right now. */
   draft: ShelfDraft | undefined;
+  /** Product she arrived with (?product=), kept in the draft. */
+  selectedProductId: BodywiseProductId | undefined;
 }
 
 const INITIAL: RightStartState = {
@@ -76,6 +82,7 @@ const INITIAL: RightStartState = {
   shelf: [],
   plan: undefined,
   draft: undefined,
+  selectedProductId: undefined,
 };
 
 let state: RightStartState = INITIAL;
@@ -94,6 +101,7 @@ interface Draft {
   checkedOn?: ISODate;
   fit: FitAnswers;
   pregnancy?: PregnancyAnswer;
+  selectedProductId?: BodywiseProductId;
 }
 
 function readDraft(): Draft | undefined {
@@ -110,6 +118,7 @@ function writeDraft(): void {
     const draft: Draft = { channel: state.channel, fit: state.fit };
     if (state.checkedOn) draft.checkedOn = state.checkedOn;
     if (state.pregnancy) draft.pregnancy = state.pregnancy;
+    if (state.selectedProductId) draft.selectedProductId = state.selectedProductId;
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch {
     /* private window: the answers still work for this visit */
@@ -156,6 +165,7 @@ export function hydrate(): Promise<void> {
         checkedOn: draft?.checkedOn ?? plan?.checkedOn,
         fit: draft?.fit ?? plan?.fit ?? {},
         pregnancy: draft?.pregnancy ?? plan?.pregnancy,
+        selectedProductId: draft?.selectedProductId ?? plan?.trialProduct,
       });
     } catch {
       set({ ready: true });
@@ -260,8 +270,38 @@ export async function addShelfItem(item: ShelfItem): Promise<void> {
   }
 }
 
-/** Changes where or when she uses a product already on the shelf. */
-export async function updateShelfItem(id: string, patch: { areas?: BodyArea[]; times?: UseTime }): Promise<void> {
+/** The product she picked on the product page (spec 3.1). */
+export function selectProduct(id: BodywiseProductId): void {
+  if (state.selectedProductId === id) return;
+  set({ selectedProductId: id });
+  writeDraft();
+}
+
+/** What the review judges her shelf against: her pick, else the 4% roll-on. */
+export function targetProduct(s: Pick<RightStartState, 'selectedProductId'> = state): BodywiseProductId {
+  return s.selectedProductId ?? DEFAULT_ANCHOR_PRODUCT;
+}
+
+/** Context for reviewing one product: her answers and every other product already on the shelf (spec 5.1). */
+export function reviewContextFor(thisProduct: ReviewContext['thisProduct'], excludeId?: string): ReviewContext {
+  return buildReviewContext({
+    target: targetProduct(),
+    fit: state.fit,
+    shelf: state.shelf.filter((i) => i.id !== excludeId),
+    thisProduct,
+  });
+}
+
+/** "Retry" on 05 for a product whose review failed. Never in example mode: the example makes no AI calls. */
+export async function retryShelfReview(id: string): Promise<void> {
+  const item = state.shelf.find((i) => i.id === id);
+  if (!item || getExample() !== null) return;
+  const review = await reviewShelfItem(item, reviewContextFor({ when: item.times, stung: item.stung }, id), todayISO());
+  await updateShelfItem(id, { review });
+}
+
+/** Updates a product already on the shelf: when she uses it, or its review. */
+export async function updateShelfItem(id: string, patch: { times?: UseTime; review?: ShelfReview }): Promise<void> {
   const next = state.shelf.map((i) => (i.id === id ? { ...i, ...patch } : i));
   set({ shelf: next });
   const updated = next.find((i) => i.id === id);
@@ -294,10 +334,10 @@ export function newItemId(): string {
  * "Save my plan" (FR-M4-05, FR-M5-01): makes the plan code, stores the plan on the phone and asks the browser to keep
  * the storage. Never requires a purchase; a purchase never requires this.
  */
-export async function savePlan(): Promise<Plan> {
+export async function savePlan(chosen?: BodywiseProductId): Promise<Plan> {
   const store = await getStore();
   const { pick, shelfAnswers, fitResult } = pickFor(state);
-  const product = pick.pick ?? undefined;
+  const product = chosen ?? pick.pick ?? state.selectedProductId ?? undefined;
   const plan: Plan = {
     planCode: state.plan?.planCode ?? makePlanCode(Math.random),
     trialId: await store.getTrialId(),

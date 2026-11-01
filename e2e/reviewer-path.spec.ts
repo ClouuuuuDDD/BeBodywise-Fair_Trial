@@ -33,7 +33,7 @@ test.describe('Reviewer path', () => {
 
     // Tap 1: the landing page to the example.
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Is this roll-on right for you?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /You've picked the/ })).toBeVisible();
     const seeExample = page.getByRole('link', { name: 'See an example trial' });
     await expect(seeExample).toBeVisible();
     // 44 px target on the very first control a reviewer meets.

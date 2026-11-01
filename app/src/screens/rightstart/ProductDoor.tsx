@@ -22,7 +22,7 @@ export default function ProductDoor() {
       <button type="button" className={styles.cart} aria-disabled="true" data-testid="add-to-cart" onClick={(e) => e.preventDefault()}>
         {door.addToCart}
       </button>
-      <Link to="/?src=bodywise-product-page" className={styles.door} data-testid="door-card">
+      <Link to="/?src=bodywise-product-page&product=bw-rollon-4" className={styles.door} data-testid="door-card">
         <DrMehr pose="avatar" size={64} alt="Dr. Mehr" className={styles.avatar} />
         <span className={styles.text}>
           <span className={styles.title}>{door.cardTitle}</span>

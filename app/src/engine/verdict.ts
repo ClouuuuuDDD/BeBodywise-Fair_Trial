@@ -9,6 +9,7 @@ import type {
 } from '../contracts';
 import { KEEP_GOING_CHECK_WEEKS, RECHECK_DAYS, STEP_UP_TARGET, SUPPORTING_ONLY_NOTE } from './config';
 import { addDays, formatDayMonth } from './dates';
+import { joinNames } from './openVariables';
 import { shade } from './shade';
 
 const NEXT_WORKING = `Keep going. Check again in ${KEEP_GOING_CHECK_WEEKS} weeks.`;
@@ -150,8 +151,29 @@ function recheck(input: VerdictInput, rule: VerdictRuleId, reasons: string[], ex
  * is shown as supporting only. A skipped blind pick leaves one read only, so it is Not yet (V8 or K), except a
  * darker-beyond-band measurement (V6) which still says See a doctor when the kill test has passed.
  * Step-up (X1-03): a Not for you with a calm trial (V3, V7 and K alike) carries stepUp; Not yet and Working never do. Placeholder rules, to be signed by a dermatologist.
+ * Open variables add one reason line; the outcome never changes.
  */
 export function verdict(input: VerdictInput): Verdict {
+  const v = baseVerdict(input);
+  const lines = openVariableLines(input.openVariables ?? []);
+  return lines.length === 0 ? v : { ...v, reasons: [...v.reasons, ...lines] };
+}
+
+/**
+ * Spec 3.8: extra reasons, the outcome logic is unchanged. Kept (she chose to keep using it) and unchecked
+ * (we could not check it) get different wording; a product we never checked is never called "kept using".
+ * Both present: two lines, kept first.
+ */
+export function openVariableLines(open: NonNullable<VerdictInput['openVariables']>): string[] {
+  const kept = open.filter((o) => o.why === 'kept').map((o) => o.name);
+  const unchecked = open.filter((o) => o.why === 'unchecked').map((o) => o.name);
+  const lines: string[] = [];
+  if (kept.length > 0) lines.push(`You also kept using ${joinNames(kept)}, so we can't be sure which one made the difference.`);
+  if (unchecked.length > 0) lines.push(`We couldn't check ${joinNames(unchecked)}, so we can't be sure which one made the difference.`);
+  return lines;
+}
+
+function baseVerdict(input: VerdictInput): Verdict {
   const { trial, reactions, change, blindPick } = input;
   const use = daysLine(input);
 

@@ -10,9 +10,9 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 208px;
-  padding-top: 34px;
+  padding-top: 28px;
 }
 
 .title {
@@ -30,58 +30,70 @@
   color: var(--ink-soft);
 }
 
-.cast {
+.rangeScroll {
   position: relative;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 34px;
-  padding: 22px 18px 18px;
-  border-radius: 28px;
+  margin: 10px -16px 0;
+  padding: 2px 16px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
 }
 
-.plates {
+.range {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  min-width: 0;
+  gap: 10px;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.plate {
-  align-self: flex-start;
-  padding: 8px 16px 6px;
-  border-radius: 14px;
-  background: var(--primary);
-  color: #fff;
-  font-family: var(--font-display);
+.rangeItem {
+  position: relative;
+  flex: 0 0 148px;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line);
+  scroll-snap-align: start;
+}
+
+.rangeItem[data-selected] {
+  box-shadow: inset 0 0 0 2.5px var(--primary);
+}
+
+.rangeName {
   font-weight: 800;
-  font-size: 20px;
-  line-height: 1;
-}
-
-.chip {
-  align-self: flex-start;
-  padding: 5px 11px;
-  border-radius: 10px;
   font-size: 13.5px;
+  line-height: 1.25;
+  color: var(--ink-display);
+}
+
+.rangePrice {
   font-weight: 800;
+  font-size: 13px;
+  color: var(--primary-press);
 }
 
-.mint {
-  background: var(--tint-mint);
-  color: var(--teal-text);
+.rangeFor {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-muted);
 }
 
-.butter {
-  background: var(--butter-tint);
-  color: var(--butter-text);
-}
-
-.spark {
+.rangeMine {
   position: absolute;
-  top: 14px;
-  right: 16px;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .facts {
@@ -89,7 +101,7 @@
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
-  padding: 18px 0 0;
+  padding: 12px 0 0;
   list-style: none;
 }
 

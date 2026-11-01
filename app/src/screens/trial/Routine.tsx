@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { ShelfItem } from '../../contracts';
+import { needsTrialChoice } from '../../engine';
 import { ensureStartPlan } from '../../state/trial';
 import { track } from '../../state/vault';
-import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, TextLink } from '../../ui';
+import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, Sheet, TextLink } from '../../ui';
 import { MASCOTS, type MascotId } from '../../ui';
+import { CleanTrialCard, allChosen, needsCleanSheet, pausedUntil } from './components/CleanTrialCard';
 import { lowerFirst } from './components/format';
 import { useTrialScreen } from './components/useTrialScreen';
 import styles from './components/trial.module.css';
@@ -36,6 +38,8 @@ function Sun() {
 export default function Routine() {
   const s = useTrialScreen();
   const { search } = useLocation();
+  const navigate = useNavigate();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const fromHome = new URLSearchParams(search).get('from') === 'home';
   const plan = s.plan;
   useEffect(() => {
@@ -50,7 +54,38 @@ export default function Routine() {
   const itemOf = (ref: string) => plan.shelf.find((i) => i.id === ref);
   const rollon: MascotId = sp.productId === 'bw-rollon-6' ? 'rollon-strong' : sp.productId.startsWith('bw-kit') ? 'cream-jar' : 'rollon-sleepy';
   const morningSteps = sp.morning.filter((m) => m.ref !== 'none');
-  const first = morningSteps[0];
+  const isPaused = (ref: string) => itemOf(ref)?.trialChoice === 'pause';
+  const live = morningSteps.filter((m) => !isPaused(m.ref));
+  const first = live[0];
+  const until = pausedUntil(s.trial?.judgeByDate);
+  const keptLine = (product: string) => `${product}: you chose to keep using it. Your verdict will say so.`;
+  const apartText = (ref: string, product: string, reason: string) => {
+    const it = itemOf(ref);
+    if (it && needsTrialChoice(it)) {
+      if (it.trialChoice === 'pause') return `${product}: ${until}`;
+      if (it.trialChoice === 'keep') return keptLine(product);
+    }
+    return `${product}: ${lowerFirst(reason)}`;
+  };
+  /** D6: a morning line never reassures about a product the review did not pass, or flagged. */
+  const morningText = (ref: string, product: string, instruction: string) => {
+    const it = itemOf(ref);
+    if (it && it.catalogId !== plan.trialProduct) {
+      if (it.review?.status !== 'ok') return `${product}: not checked yet.`;
+      if (needsTrialChoice(it)) {
+        if (it.trialChoice === 'pause') return `${product}: ${lowerFirst(until)}`;
+        if (it.trialChoice === 'keep') return keptLine(product);
+      }
+      if (it.review.action === 'ask-doctor') return `${product}: ask a doctor before using it with the roll-on.`;
+    }
+    if (isPaused(ref)) return `${product}: ${lowerFirst(until)}`;
+    return isDeodorant(it) ? 'Your usual deodorant.' : `${product}: ${lowerFirst(instruction)}`;
+  };
+  const proceed = () => {
+    track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length });
+    setSheetOpen(false);
+    void navigate(fromHome ? '/trial' : '/start/photo?site=underarm');
+  };
   const shareUrl = `${window.location.origin}/`;
   const shareText = `My roll-on routine from Fair Trial: ${shareUrl}`;
 
@@ -98,7 +133,7 @@ export default function Routine() {
           ) : (
             morningSteps.map((m) => (
               <p key={m.ref} className={styles.stageBody}>
-                {isDeodorant(itemOf(m.ref)) ? 'Your usual deodorant.' : `${m.product}: ${lowerFirst(m.instruction)}`}
+                {morningText(m.ref, m.product, m.instruction)}
               </p>
             ))
           )}
@@ -114,7 +149,7 @@ export default function Routine() {
           <div>
             <h2 className={`${styles.stageTitle} ${styles.apartTitle}`}>Keep apart</h2>
             <p className={styles.stageBody}>
-              {k.product}: {lowerFirst(k.reason)}
+              {apartText(k.ref, k.product, k.reason)}
             </p>
           </div>
         </section>
@@ -132,12 +167,7 @@ export default function Routine() {
       <PlaceholderRulesNote />
 
       <BottomBar>
-        <PrimaryButton
-          to={fromHome ? '/trial' : '/start/photo?site=underarm'}
-          onClick={() => track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length })}
-        >
-          Got it
-        </PrimaryButton>
+        <PrimaryButton onClick={() => (needsCleanSheet(plan) ? setSheetOpen(true) : proceed())}>Got it</PrimaryButton>
         <TextLink href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} external onClick={(e) => void share(e)} data-testid="share-routine">
           <span className={styles.inlineIcon}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -147,6 +177,25 @@ export default function Routine() {
           </span>
         </TextLink>
       </BottomBar>
+
+      <Sheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Your clean trial"
+        footer={
+          <PrimaryButton
+            disabled={!allChosen(plan.shelf)}
+            onClick={() => {
+              if (!allChosen(plan.shelf)) return;
+              proceed();
+            }}
+          >
+            Continue
+          </PrimaryButton>
+        }
+      >
+        <CleanTrialCard plan={plan} judgeBy={s.trial?.judgeByDate} bare />
+      </Sheet>
     </AppShell>
   );
 }

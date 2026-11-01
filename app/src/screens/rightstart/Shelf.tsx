@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import type { BodyArea, UseTime } from '../../contracts';
+import type { UseTime } from '../../contracts';
 import { track } from '../../state';
 import { removeShelfItem, updateShelfItem, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, CheckChip, Icon, PrimaryButton, Sheet, TextLink } from '../../ui';
@@ -16,14 +16,6 @@ export default function Shelf() {
   const justAdded = (location.state as { added?: string } | null)?.added;
   const [editId, setEditId] = useState<string | undefined>();
   const editing = s.shelf.find((i) => i.id === editId);
-
-  function toggleArea(area: BodyArea, on: boolean) {
-    if (!editing) return;
-    const areas = on ? [...editing.areas, area] : editing.areas.filter((a) => a !== area);
-    if (areas.length === 0) return;
-    void updateShelfItem(editing.id, { areas });
-    track('shelf_item_edited', '04', { field: 'areas', classes: editing.classes });
-  }
 
   async function remove() {
     if (!editing) return;
@@ -68,18 +60,6 @@ export default function Shelf() {
       >
         {editing ? (
           <div className={styles.sheetBody}>
-            <p className={styles.q}>{confirm.where}</p>
-            <div className={styles.chips}>
-              {confirm.whereOptions.map((o) => (
-                <CheckChip
-                  key={o.value}
-                  value={o.value}
-                  label={o.label}
-                  checked={editing.areas.includes(o.value as BodyArea)}
-                  onChange={(on) => toggleArea(o.value as BodyArea, on)}
-                />
-              ))}
-            </div>
             <p className={styles.q}>{confirm.when}</p>
             <div className={styles.chips}>
               {confirm.whenOptions.map((o) => (

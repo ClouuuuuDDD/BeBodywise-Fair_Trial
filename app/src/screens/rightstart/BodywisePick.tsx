@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { BodywiseProductId } from '../../contracts';
 import { costIsEstimate, pregnancyQuestionNeeded, productPrice } from '../../engine';
-import { BOTTLE_DAYS, DEFAULT_ANCHOR_PRODUCT, TRIAL_USE_DAYS } from '../../engine/config';
+import { BOTTLE_DAYS, TRIAL_USE_DAYS } from '../../engine/config';
 import { useTour } from '../../state/tour';
 import { track } from '../../state';
-import { answerPregnancy, firstTime, pickFor, savePlan, useRightStart } from '../../state/rightStart';
+import { answerPregnancy, firstTime, pickFor, savePlan, selectProduct, targetProduct, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, CornerRibbon, DrMehr, Icon, PlaceholderRulesNote, PrimaryButton, ResultCard, Sheet, TextLink } from '../../ui';
 import { FitGuard } from './components/FitGuard';
 import { ProductArt } from './components/ProductArt';
+import { compareChoice, priceDiffLine, resolveChoice, type Decision } from './components/compareChoice';
 import { RANGE_NAMES } from './components/rangeNames';
 import { amazonUrl, bodywiseUrl, DOCTOR_URL, rupees } from './components/links';
 import { match as t } from './copy';
@@ -33,7 +34,12 @@ function Match() {
   const [rangeOpen, setRangeOpen] = useState(false);
   const askPregnancy = pregnancyQuestionNeeded(input) && !pregnancyDismissed;
 
-  const target: BodywiseProductId = pick.pick ?? DEFAULT_ANCHOR_PRODUCT;
+  const selected = targetProduct(s);
+  const view = compareChoice(selected, pick);
+  const [decision, setDecision] = useState<Decision | undefined>(undefined);
+  const chosen = resolveChoice(view, decision);
+  const target: BodywiseProductId = chosen ?? (view.kind === 'differs' ? view.best : selected);
+  const deciding = view.kind === 'differs' && chosen === undefined;
   const signature = `${pick.pick}|${pick.ruleRow}|${pick.variant ?? ''}`;
 
   useEffect(() => {
@@ -60,7 +66,7 @@ function Match() {
   }
 
   async function save() {
-    await savePlan();
+    await savePlan(target);
     void navigate('/start');
   }
 
@@ -71,7 +77,7 @@ function Match() {
   );
 
   const price = productPrice(target);
-  const kit = pick.pick !== null && costIsEstimate(pick.pick);
+  const kit = costIsEstimate(target);
   const bottles = Math.ceil(TRIAL_USE_DAYS / BOTTLE_DAYS);
   const weeks = TRIAL_USE_DAYS / 7;
   const cost = bottles * price;
@@ -85,6 +91,16 @@ function Match() {
   return (
     <AppShell screen="05b" header={{ back: '/check/shelf/answer', title: t.runningHead }}>
       <h1 className={styles.title}>{headline}</h1>
+
+      {view.kind === 'same' ? <p className={styles.same} data-testid="same-choice">{t.sameChoice}</p> : null}
+      {view.kind === 'differs' ? (
+        <div className={styles.compare} data-testid="compare">
+          <p>
+            {t.youChose} <b>{RANGE_NAMES[view.selected]}</b> · {t.betterFit}: <b>{RANGE_NAMES[view.best]}</b>
+          </p>
+          <p className={styles.diff} data-testid="price-diff">{priceDiffLine(RANGE_NAMES[view.best], view.priceDiff)}</p>
+        </div>
+      ) : null}
 
       {pick.doctorFirst ? <div className={styles.doctorFirst}>{doctorLink('stop-ask')}</div> : null}
 
@@ -192,6 +208,20 @@ function Match() {
       </div>
 
       <BottomBar sticky>
+        {deciding && view.kind === 'differs' ? (
+          <>
+            <p className={styles.demoNote}>{t.decideHint}</p>
+            <div className={`${styles.two} ${styles.decide}`}>
+              <PrimaryButton size="md" variant="secondary" data-testid="switch-best" onClick={() => { selectProduct(view.best); setDecision({ selected: view.selected, best: view.best, choice: view.best }); }}>
+                {t.switchTo(RANGE_NAMES[view.best])}
+              </PrimaryButton>
+              <PrimaryButton size="md" variant="secondary" data-testid="keep-mine" onClick={() => setDecision({ selected: view.selected, best: view.best, choice: view.selected })}>
+                {t.keep(RANGE_NAMES[view.selected])}
+              </PrimaryButton>
+            </div>
+          </>
+        ) : (
+          <>
         {demo ? (
           <p className={styles.demoNote} data-testid="demo-buy-note">
             Demo: buying is acted out here, then the trial begins.
@@ -224,6 +254,8 @@ function Match() {
             {t.save}
           </PrimaryButton>
         </div>
+          </>
+        )}
       </BottomBar>
 
       <Sheet open={askPregnancy} onClose={() => setPregnancyDismissed(true)} title={t.pregnancyQ}>

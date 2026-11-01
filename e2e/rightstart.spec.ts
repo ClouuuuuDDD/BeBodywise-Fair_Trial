@@ -29,21 +29,60 @@ const FIXTURES: Record<'toner' | 'spray' | 'cream', Fixture> = {
   cream: { name: 'Silk Hair Removal Cream', brand: 'Silk', ingredients: 'Aqua, Potassium Thioglycolate, Calcium Hydroxide, Parfum' },
 };
 
-type Mock = { current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void> };
+type ReviewFixture = { productType: string; culprits: { ingredient: string; concern: string; why: string }[]; mayWorsenDarkness: boolean; darknessWhy?: string; action: string; actionWhy: string; confidence: string };
+
+/** What the mocked AI says per fixture (fictional brands; spec 3.5). */
+const REVIEWS: Record<'toner' | 'spray' | 'cream' | 'default', ReviewFixture> = {
+  toner: {
+    productType: 'toner-serum-acid',
+    culprits: [{ ingredient: 'Glycolic Acid', concern: 'acid', why: 'A second exfoliating acid on the same skin may over-exfoliate.' }],
+    mayWorsenDarkness: true, darknessWhy: 'Over-exfoliation may irritate and leave darker marks.',
+    action: 'pause-during-trial', actionWhy: 'Two acids on the same skin may irritate and blur whether the roll-on worked.', confidence: 'high',
+  },
+  spray: {
+    productType: 'deodorant-antiperspirant',
+    culprits: [{ ingredient: 'Alcohol Denat.', concern: 'drying-alcohol', why: 'Drying alcohol first in the list may sting freshly treated skin.' }],
+    mayWorsenDarkness: true, darknessWhy: 'It has stung you, and repeated stinging may darken skin.',
+    action: 'pause-during-trial', actionWhy: 'It stung you before. The roll-on works as a deodorant, so pause this for the trial.', confidence: 'high',
+  },
+  cream: {
+    productType: 'hair-removal',
+    culprits: [{ ingredient: 'Potassium Thioglycolate', concern: 'depilatory', why: 'Hair removal chemicals leave skin sensitive for a while.' }],
+    mayWorsenDarkness: false, action: 'different-time', actionWhy: 'Keep it at least two days away from the roll-on.', confidence: 'high',
+  },
+  default: { productType: 'other', culprits: [], mayWorsenDarkness: false, action: 'keep', actionWhy: 'Nothing here looks harsh for your underarms.', confidence: 'high' },
+};
+const stamped = (r: ReviewFixture) => ({ ...r, status: 'ok', provider: 'gemini', model: 'gemini-3.5-flash-lite', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31' });
+
+type Mock = {
+  current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void>; reviewGate?: Promise<void>;
+  review: ReviewFixture; reviewStatus: number; bodies: Record<string, unknown>[];
+};
 
 /** Blocks non-local hosts and mocks the label reader. */
 async function setup(page: Page): Promise<Mock> {
-  const mock: Mock = { current: FIXTURES.toner, delayMs: 0, status: 200, requests: 0 };
+  const mock: Mock = { current: FIXTURES.toner, delayMs: 0, status: 200, requests: 0, review: REVIEWS.toner, reviewStatus: 200, bodies: [] };
   await page.route((url) => !['localhost', '127.0.0.1'].includes(url.hostname), (route) => route.abort());
   await page.route('**/api/read-label', async (route) => {
     mock.requests += 1;
+    const body = JSON.parse(route.request().postData() ?? '{}') as { kind?: string };
+    mock.bodies.push(body);
+    if (body.kind === 'review-text') {
+      if (mock.reviewGate) await mock.reviewGate.catch(() => undefined);
+      if (mock.reviewStatus !== 200) {
+        await route.fulfill({ status: mock.reviewStatus, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'unreadable' }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, kind: 'review-text', provider: 'gemini', review: stamped(mock.review) }) });
+      return;
+    }
     if (mock.delayMs) await new Promise((r) => setTimeout(r, mock.delayMs));
     if (mock.gate) await mock.gate; // a test holds the reply until it has looked at the loading state
     if (mock.status !== 200) {
       await route.fulfill({ status: mock.status, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'boom' }) });
       return;
     }
-    const kind = (JSON.parse(route.request().postData() ?? '{}') as { kind?: string }).kind;
+    const kind = body.kind;
     const f = mock.current;
     await route.fulfill({
       status: 200,
@@ -51,7 +90,7 @@ async function setup(page: Page): Promise<Mock> {
       body: JSON.stringify(
         kind === 'front'
           ? { ok: true, kind: 'front', name: f.name, brand: f.brand, provider: 'gemini' }
-          : { ok: true, kind: 'ingredients', ingredientsText: f.ingredients, provider: 'gemini' },
+          : { ok: true, kind: 'ingredients', ingredientsText: f.ingredients, provider: 'gemini', review: stamped(mock.review) },
       ),
     });
   });
@@ -144,15 +183,15 @@ async function addLabelProduct(
   page: Page,
   mock: Mock,
   key: 'toner' | 'spray' | 'cream',
-  o: { areas: string[]; time: string; stung?: boolean; antiperspirant?: 'sweat' | 'smell' | 'both' },
+  o: { time: string; stung?: boolean; antiperspirant?: 'sweat' | 'smell' | 'both' },
 ) {
   mock.current = FIXTURES[key];
+  mock.review = REVIEWS[key];
   await page.getByTestId('add-product').click();
   await page.getByTestId('photo-upload').setInputFiles(photo);
   await expect(page.getByRole('heading', { name: 'Now the ingredient list' })).toBeVisible();
   await page.getByTestId('photo-upload').setInputFiles(photo);
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   if (o.stung) await page.getByTestId('chip-stung').click();
   await page.getByTestId('primary').click();
@@ -160,39 +199,38 @@ async function addLabelProduct(
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
-async function addCatalogProduct(page: Page, id: string, o: { areas: string[]; time: string }) {
+async function addCatalogProduct(page: Page, mock: Mock, id: string, o: { time: string }) {
+  mock.review = REVIEWS.default;
   await page.getByTestId('add-product').click();
   await page.getByTestId('bodywise-one').click();
   await page.getByTestId(`catalog-${id}`).click();
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   await page.getByTestId('primary').click();
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
 /** A typed product (no network): name plus the ingredient list. */
-async function addTypedProduct(page: Page, name: string, list: string, o: { areas: string[]; time: string }) {
+async function addTypedProduct(page: Page, mock: Mock, name: string, list: string, o: { time: string }, review: ReviewFixture = REVIEWS.default) {
+  mock.review = review;
   await page.getByTestId('add-product').click();
   await page.getByTestId('type-name').click();
   await page.getByTestId('typed-name').fill(name);
   await page.getByTestId('typed-ingredients').fill(list);
   await page.getByTestId('type-continue').click();
   await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
-  for (const a of o.areas) await page.getByTestId(`chip-${a}`).click();
   await page.getByTestId(`chip-${o.time}`).click();
   await page.getByTestId('primary').click();
   await expect(page).toHaveURL(/\/check\/shelf$/);
 }
 
-/** Riya's worked example: four products, answers per solution/shelf-check-spec.md. Ends on 04 with four rows. */
+/** Riya's worked example: three underarm products, answers per solution/shelf-check-spec.md. Ends on 04 with three rows. */
 async function riyaShelf(page: Page, mock: Mock) {
   await fitCheck(page, RIYA);
-  await addLabelProduct(page, mock, 'toner', { areas: ['face', 'underarm'], time: 'night' });
-  await addLabelProduct(page, mock, 'spray', { areas: ['underarm'], time: 'morning', stung: true, antiperspirant: 'smell' });
-  await addLabelProduct(page, mock, 'cream', { areas: ['underarm'], time: 'now-and-then' });
-  await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
-  await expect(page.getByTestId('shelf-row')).toHaveCount(4);
+  await addLabelProduct(page, mock, 'toner', { time: 'night' });
+  await addLabelProduct(page, mock, 'spray', { time: 'morning', stung: true, antiperspirant: 'smell' });
+  await addLabelProduct(page, mock, 'cream', { time: 'now-and-then' });
+  await expect(page.getByTestId('shelf-row')).toHaveCount(3);
 }
 
 /* ------------------------------------------------------------------ 01, 02 */
@@ -215,17 +253,21 @@ test.describe('01 Product page door and 02 Welcome', () => {
     await expect(page.getByText('Concept for Be Bodywise')).toBeVisible();
     // AC-01-2: the card leads to the welcome with the door stored on the session.
     await page.getByTestId('door-card').click();
-    await expect(page).toHaveURL(/\/\?src=bodywise-product-page$/);
+    await expect(page).toHaveURL(/\/\?src=bodywise-product-page&product=bw-rollon-4$/);
     await expect.poll(async () => (await eventsNamed(page, 'door_opened')).map((e) => e.channel)).toEqual(['bodywise-product-page']);
   });
 
   test('AC-02-1..3: welcome facts, one primary, the example link', async ({ page }) => {
     await setup(page);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Is this roll-on right for you?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /You've picked the 4% AHA BHA Underarm Roll On \(Rs 329\)/ })).toBeVisible();
+    await expect(page.getByText('Bodywise has 5 products for underarm darkness. Take 2 minutes to see which fits you best.')).toBeVisible();
+    const range = page.getByTestId('pick-range').getByRole('listitem');
+    await expect(range).toHaveCount(5);
+    await expect(page.getByTestId('pick-range').locator('[aria-current="true"]')).toContainText('4% AHA BHA Underarm Roll On');
     for (const fact of ['2 minutes', 'No login', 'Skin photos stay on your phone']) await expect(page.getByText(fact, { exact: true })).toBeVisible();
     await expect(page.getByTestId('primary')).toHaveCount(1);
-    await expect(page.getByTestId('primary')).toHaveText("Check if it's right for me");
+    await expect(page.getByTestId('primary')).toHaveText('Check my fit');
     await expect(page.getByText('Concept for Be Bodywise')).toBeVisible();
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/1$/);
@@ -234,6 +276,19 @@ test.describe('01 Product page door and 02 Welcome', () => {
     await page.goto('/');
     await page.getByText('See an example trial').click();
     await expect(page).toHaveURL(/\/example$/);
+  });
+
+  test('spec 3.1: ?product= highlights her pick, unknown ids fall back to the 4% roll-on, the pick is remembered', async ({ page }) => {
+    await setup(page);
+    await page.goto('/?product=bw-kit-6');
+    await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit \(Rs 859\)/ })).toBeVisible();
+    const mine = page.getByTestId('pick-range').locator('[aria-current="true"]');
+    await expect(mine).toContainText('Advanced Underarm Pigmentation Kit');
+    await expect(mine).toBeInViewport();
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit/ })).toBeVisible(); // remembered
+    await page.goto('/?product=not-a-product');
+    await expect(page.getByRole('heading', { name: /4% AHA BHA Underarm Roll On \(Rs 329\)/ })).toBeVisible();
   });
 
   test('AC-02-4 and FR-M1-04: a saved plan routes on; box QR with no plan shows the fallback', async ({ page }) => {
@@ -332,7 +387,7 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(steps).toContainText('Front');
     await expect(steps).toContainText('Ingredients');
     await expect(
-      page.getByText("Label photos are read by Google Gemini to get the ingredients. We don't keep them. Photos of your skin never leave your phone."),
+      page.getByText('Label photos and three of your answers (shade, how long, hair removal) are read by AI services (Google Gemini, with backups). Google may use free-tier data to improve its products. Skin photos never leave this phone.'),
     ).toBeVisible();
     await expect(page.getByText(/barcode/i)).toHaveCount(0);
   });
@@ -357,10 +412,9 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(page.locator('[data-active="true"]')).toHaveText('Glycolic Acid');
     await expect(page.getByText('Glycolic acid: an exfoliating acid, like the roll-on')).toBeVisible();
     await expect(page.getByText('Parfum: fragrance')).toBeVisible();
-    // The add button stays off until where and when are chosen, and says so.
-    await expect(page.getByTestId('confirm-hint')).toHaveText('Pick where and when you use it to add it.');
-    await page.getByTestId('chip-underarm').click();
+    // The add button stays off until a time is chosen, and says so. There is no "where" question.
     await expect(page.getByTestId('confirm-hint')).toHaveText('Pick when you use it to add it.');
+    await expect(page.getByTestId('chip-underarm')).toHaveCount(0);
     await page.getByTestId('chip-night').click();
     await expect(page.getByTestId('confirm-hint')).toHaveCount(0);
   });
@@ -401,7 +455,7 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     expect(seen.filter((u) => u.includes('/api/'))).toEqual([]);
   });
 
-  test('AC-04b-2 and 04b-4: add is disabled until a place and a time; an antiperspirant asks sweat or smell first', async ({ page }) => {
+  test('AC-04b-2 and 04b-4: add is disabled until a time; an antiperspirant asks sweat or smell first', async ({ page }) => {
     const mock = await setup(page);
     mock.current = FIXTURES.spray;
     await fitCheck(page, RIYA);
@@ -411,8 +465,6 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
     const add = page.getByTestId('primary');
     await expect(add).toHaveAttribute('aria-disabled', 'true');
-    await page.getByTestId('chip-underarm').click();
-    await expect(add).toHaveAttribute('aria-disabled', 'true'); // still no time
     await page.getByTestId('chip-morning').click();
     await expect(add).not.toHaveAttribute('aria-disabled', 'true');
     await add.click();
@@ -436,26 +488,86 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await page.getByText("Something's off? Fix a word or retake").click();
     await page.getByLabel('Ingredient 2').fill('Lactic Acid');
     await expect(page.getByText('Lactic acid: an exfoliating acid, like the roll-on')).toBeVisible();
-    await page.getByTestId('chip-face').click();
     await page.getByTestId('chip-night').click();
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf$/);
     await expect(page.getByTestId('shelf-row')).toContainText('Lactic acid');
+    // An edited list is judged again from text on "Looks right" (spec 3.4).
+    await expect.poll(() => mock.bodies.filter((b) => b.kind === 'review-text').length).toBe(1);
     await expect.poll(async () => (await eventsNamed(page, 'label_read_confirmed')).map((e) => e.edited)).toEqual([true]);
   });
 
-  test('AC-04-3: tapping a row edits where and when, or removes the product', async ({ page }) => {
-    await setup(page);
+  test('spec 3.3-3.4: the photo call returns the review; ticking stung re-checks it; a failed check still adds the product', async ({ page }) => {
+    const mock = await setup(page);
     await fitCheck(page, RIYA);
-    await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
+    await expect(page.getByRole('heading', { name: 'What touches your underarms?' })).toBeVisible();
+    await addLabelProduct(page, mock, 'toner', { time: 'night' });
+    expect(mock.bodies.filter((b) => b.kind === 'review-text')).toHaveLength(0); // the photo call already judged it
+    const ing = mock.bodies.find((b) => b.kind === 'ingredients') as { context: { her: Record<string, string>; target: { name: string } } };
+    expect(ing.context.her).toEqual({ shade: 'moderate', duration: 'year-plus', hairRemoval: 'razor' });
+    expect(ing.context.target.name).toBe('4% AHA BHA Underarm Roll On');
+    await addLabelProduct(page, mock, 'cream', { time: 'now-and-then', stung: true });
+    expect(mock.bodies.filter((b) => b.kind === 'review-text')).toHaveLength(1);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await expect(page.getByTestId('shelf-row')).toHaveCount(3);
+  });
+
+  test('04b: while the text check runs, a visible status says so; "Add it now, check later" adds it unchecked', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    let release!: () => void;
+    mock.reviewGate = new Promise<void>((r) => (release = r));
+    mock.review = REVIEWS.default;
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Plain lotion');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('checking-status')).toHaveText('Checking it against your plan…');
+    await expect(page.getByRole('status').filter({ hasText: 'Checking it against your plan' })).toBeVisible();
+    await page.getByTestId('add-unchecked').click();
+    await expect(page).toHaveURL(/\/check\/shelf$/);
+    await expect(page.getByTestId('shelf-row')).toHaveCount(1);
+    release();
+  });
+
+  test('04b: leaving mid-check aborts it and adds nothing', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    let release!: () => void;
+    mock.reviewGate = new Promise<void>((r) => (release = r));
+    mock.review = REVIEWS.default;
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Plain lotion');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('checking-status')).toBeVisible();
+    await page.getByTestId('back').click();
+    await expect(page).toHaveURL(/\/check\/shelf\/add/);
+    release();
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/check\/shelf\/add/);
+    await page.goto('/check/shelf');
+    await expect(page.getByTestId('shelf-row')).toHaveCount(0);
+  });
+
+  test('AC-04-3: tapping a row edits when, or removes the product', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    await addCatalogProduct(page, mock, 'bw-niacinamide-lotion', { time: 'morning' });
     await page.getByTestId('shelf-row').click();
-    await page.getByRole('dialog').getByTestId('chip-face').click();
     await page.getByRole('dialog').getByTestId('chip-night').click();
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('shelf-row')).toContainText('Body, face · Night');
+    await expect(page.getByTestId('shelf-row')).toContainText('Underarms · Night');
     await expect
       .poll(async () => (await eventsNamed(page, 'shelf_item_edited')).map((e) => e.field).sort())
-      .toEqual(['areas', 'time']);
+      .toEqual(['time']);
     await page.getByTestId('shelf-row').click();
     await page.getByTestId('remove-item').click();
     await expect(page.getByTestId('shelf-row')).toHaveCount(0);
@@ -466,38 +578,42 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
 /* ------------------------------------------------------------------ 05, 05b, 06: Riya */
 
 test.describe("Riya's worked example, 05, 05b and 06", () => {
-  test('AC-04-2, AC-05-1..3, AC-05-6: four rows in order, each naming its product and ingredient', async ({ page }) => {
+  test('spec 3.5: one row per product with its action, culprit, reason and the darkness flag; a failed check offers Retry', async ({ page }) => {
     const mock = await setup(page);
     await riyaShelf(page, mock);
     const rows = page.getByTestId('shelf-row');
-    await expect(rows.nth(0)).toContainText('Glow 7% Glycolic Toner');
-    await expect(rows.nth(0)).toContainText('Glycolic acid');
-    await expect(rows.nth(0)).toContainText('Face, underarms · Night');
+    await expect(rows.nth(0)).toContainText('Underarms · Night');
     await expect(rows.nth(1)).toContainText('Underarms · Morning · stung once');
-    await expect(rows.nth(3)).toContainText('Niacinamide');
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf\/answer$/);
-    await expect(page.getByTestId('running-head')).toHaveText('Right Start · Your shelf');
-    await expect(page.getByRole('heading', { name: 'One swap, two habits.' })).toBeVisible();
-    const answer = page.getByTestId('answer-row');
-    await expect(answer).toHaveCount(4);
-    const expected: Array<[string, string, string]> = [
-      ['Pick one here', 'Glow 7% Glycolic Toner', 'glycolic'],
-      ['Different times', 'Fresh Bloom Deo Spray', 'alcohol'],
-      ['Leave a gap', 'Silk Hair Removal Cream', 'Thioglycolate'],
-      ['Fine together', '10% Niacinamide Body Lotion', 'Niacinamide'],
-    ];
-    for (const [i, [label, product, ingredient]] of expected.entries()) {
-      await expect(answer.nth(i)).toContainText(label);
-      await expect(answer.nth(i)).toContainText(product);
-      await expect(answer.nth(i).locator('b').first()).toContainText(ingredient);
-    }
-    await expect(answer.nth(1)).not.toContainText(/\d+\s*hours?/i); // AC-05-3
-    await expect(page.getByTestId('placeholder-rules')).toHaveText('Placeholder rules, to be signed by a dermatologist.');
-    await expect(page.getByTestId('primary')).toHaveText('See your best Be Bodywise match');
+    await expect(page.getByRole('heading', { name: '3 products need a change for your trial.' })).toBeVisible();
+    const review = page.getByTestId('review-row');
+    await expect(review).toHaveCount(3);
+    await expect(review.nth(0)).toHaveAttribute('data-action', 'pause-during-trial');
+    await expect(review.nth(0)).toContainText('Glow 7% Glycolic Toner');
+    await expect(review.nth(0).getByTestId('culprits')).toContainText('Glycolic Acid');
+    await expect(review.nth(0).getByTestId('darkness-flag')).toContainText('May be adding to your darkness');
+    await expect(review.nth(2)).toHaveAttribute('data-action', 'different-time');
+    await expect(page.getByTestId('placeholder-rules')).toHaveText('Checked by AI against a draft dermatologist brief. Not medical advice.');
     await expect.poll(async () => (await eventsNamed(page, 'shelf_checked')).length).toBe(1);
-    const [checked] = await eventsNamed(page, 'shelf_checked');
-    expect(checked).toMatchObject({ item_count: 4, n_fine: 1, n_split_time: 1, n_pick_one: 1, n_wait: 1, n_stop_ask: 0 });
+  });
+
+  test('spec 3.5 and D6: a product whose check failed is never shown as Keep, and Retry fixes it', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await page.getByTestId('primary').click();
+    const row = page.getByTestId('review-row');
+    await expect(row).toHaveAttribute('data-action', 'unchecked');
+    await expect(row).toContainText("We couldn't check this one.");
+    await expect(page.getByRole('heading', { name: "One product isn't checked yet." })).toBeVisible();
+    const summary = page.getByTestId('review-summary');
+    await expect(summary).toHaveAttribute('aria-live', 'polite'); // Retry results are announced
+    mock.reviewStatus = 200;
+    await page.getByTestId('retry-review').click();
+    await expect(row).toHaveAttribute('data-action', 'keep');
+    await expect(summary).not.toHaveText("One product isn't checked yet.");
   });
 
   test('AC-05b-1..3: 4% No Fragrance, cost strip, list price, four other products', async ({ page }) => {
@@ -507,15 +623,14 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/match$/);
     await expect(page.getByTestId('running-head')).toHaveText('Right Start · Your match');
-    await expect(page.getByRole('heading', { name: 'Start gentle. Step up later.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Don't stack acids." })).toBeVisible(); // toner is underarm-only now: rule row 3
     await expect(page.getByTestId('best-name')).toHaveText('4% AHA BHA Underarm Roll On');
     await expect(page.getByTestId('best-meta')).toHaveText(/No Fragrance · 50 ml · Rs\s329/);
     const card = page.getByTestId('best-card');
     await expect(card).toContainText('Best');
-    await expect(card.getByRole('listitem')).toHaveCount(3);
-    await expect(card).toContainText('Clearly darker, not 3+ shades: a roll-on is enough.');
-    await expect(card).toContainText('stung you once, so: gentler acids, no fragrance.');
-    await expect(card).toContainText('You use hair removal cream, which leaves skin sensitive.');
+    await expect(card.getByRole('listitem')).toHaveCount(2);
+    await expect(card).toContainText('Finish a fair trial of Glow 7% Glycolic Toner, or switch to the roll-on and stop it.');
+    await expect(card).toContainText('stung you once, so: no fragrance.');
     const strip = page.getByTestId('cost-strip');
     await expect(strip).toContainText('8 weeks to judge');
     await expect(strip).toContainText('2 bottles');
@@ -538,7 +653,7 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(page.getByTestId('placeholder-rules')).toBeVisible();
     await expect.poll(async () => (await eventsNamed(page, 'pick_shown')).length).toBeGreaterThan(0);
     const [shown] = await eventsNamed(page, 'pick_shown');
-    expect(shown).toMatchObject({ product_id: 'bw-rollon-4', variant: 'no-fragrance', rule_row: 8, base_row: 8, hormone_note: false });
+    expect(shown).toMatchObject({ product_id: 'bw-rollon-4', variant: 'no-fragrance', rule_row: 3, base_row: 3, hormone_note: false });
   });
 
   test('AC-05b-6: Buy on Be Bodywise opens a new tab on the catalog URL and logs buy_clicked', async ({ page, context }) => {
@@ -571,14 +686,13 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(page.getByRole('heading', { name: 'Your plan from 14 October is ready.' })).toBeVisible();
     await expect(page.getByTestId('running-head')).toHaveText('Right Start · Day 0');
     const cast = page.getByTestId('cast-card');
-    await expect(cast).toHaveCount(5);
+    await expect(cast).toHaveCount(4); // underarm-only shelf: the lotion is gone
     await expect(cast.nth(0)).toContainText('Roll-on');
     await expect(cast.nth(0)).toContainText('New arrival');
     await expect(cast.nth(1)).toContainText('Toner');
-    await expect(cast.nth(1)).toContainText('Face only');
+    await expect(cast.nth(1)).toContainText('Pick one here'); // toner is now underarms, so it overlaps the roll-on
     await expect(cast.nth(2)).toContainText('Mornings only');
     await expect(cast.nth(3)).toContainText('2 days apart');
-    await expect(cast.nth(4)).toContainText('Fine together');
     await expect(page.getByText('Next, about 5 minutes')).toBeVisible();
     await expect(page.getByTestId('primary')).toHaveText('Start my plan');
     await page.getByTestId('primary').click();
@@ -597,19 +711,108 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/1$/);
   });
+
+  test('spec 3.7: the clean-trial sheet asks pause or keep for each flagged product before Continue', async ({ page }) => {
+    const mock = await setup(page);
+    await riyaShelf(page, mock);
+    await page.getByTestId('primary').click();
+    await page.getByTestId('primary').click();
+    await page.getByTestId('save-plan').click();
+    await page.getByTestId('primary').click(); // Start my plan
+    await expect(page).toHaveURL(/\/start\/routine$/);
+    await page.getByTestId('primary').click(); // Got it opens the clean-trial sheet
+    const sheet = page.getByRole('dialog');
+    const card = sheet.getByTestId('clean-trial');
+    await expect(card.getByTestId('clean-row')).toHaveCount(2); // toner and spray say pause; the cream says different time
+    const cont = sheet.getByRole('button', { name: 'Continue' });
+    await expect(cont).toHaveAttribute('aria-disabled', 'true');
+    await expect(card).toContainText('whether the roll-on is what changed');
+    const group = card.getByTestId('clean-row').nth(0).getByRole('radiogroup');
+    await expect(group.getByRole('radio')).toHaveCount(2);
+    await card.getByTestId('clean-row').nth(0).getByTestId('chip-keep').click();
+    await expect(group.getByRole('radio', { name: "I'll keep using it" })).toHaveAttribute('aria-checked', 'true');
+    await expect(group.getByRole('radio', { name: "I'll pause it" })).toHaveAttribute('aria-checked', 'false');
+    await expect(cont).toHaveAttribute('aria-disabled', 'true');
+    await card.getByTestId('clean-row').nth(1).getByTestId('chip-pause').click();
+    await expect(card.getByTestId('clean-row').nth(1)).toContainText('Paused until');
+    await expect(cont).not.toHaveAttribute('aria-disabled', 'true');
+    const choices = async () => (((await savedPlan(page))?.shelf ?? []) as { product: string; trialChoice?: string }[]).map((i) => [i.product, i.trialChoice]);
+    await expect.poll(choices).toEqual([
+      ['Glow 7% Glycolic Toner', 'keep'],
+      ['Fresh Bloom Deo Spray', 'pause'],
+      ['Silk Hair Removal Cream', undefined],
+    ]);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/start\/routine$/);
+    const morning = page.getByRole('region', { name: 'Morning' });
+    await expect(morning).not.toContainText('Your usual deodorant.');
+    await expect(morning).toContainText('Fresh Bloom Deo Spray: paused');
+    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('you chose to keep using it.');
+    await page.getByTestId('primary').click(); // every choice made: Got it goes straight on
+    await expect(page).toHaveURL(/\/start\/photo/);
+  });
+
+  test('D6: a morning product whose check failed says "not checked yet", never "Keep using it"', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await page.getByTestId('primary').click(); // 05
+    await page.getByTestId('primary').click(); // 05b
+    await page.getByTestId('save-plan').click();
+    await page.getByTestId('primary').click(); // Start my plan
+    await expect(page).toHaveURL(/\/start\/routine$/);
+    const morning = page.getByRole('region', { name: 'Morning' });
+    await expect(morning).toContainText('Plain lotion: not checked yet.');
+    await expect(morning).not.toContainText('Keep using it');
+    await expect(morning).not.toContainText('keep using it');
+  });
 });
 
 /* ------------------------------------------------------------------ pick variants */
 
 test.describe('05 and 05b variants', () => {
-  test('AC-05-5 and AC-05b-8: a steroid on underarms is listed first, the doctor link leads, buy still works', async ({ page }) => {
-    await setup(page);
-    await fitCheck(page, RIYA);
-    await addCatalogProduct(page, 'bw-niacinamide-lotion', { areas: ['body'], time: 'morning' });
-    await addTypedProduct(page, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { areas: ['underarm'], time: 'night' });
+  test('spec 3.6: her pick differs from the best fit: side by side, equal buttons, her choice becomes the plan', async ({ page }) => {
+    const mock = await setup(page);
+    await page.goto('/?product=bw-kit-6');
+    await riyaShelf(page, mock);
     await page.getByTestId('primary').click();
-    const rows = page.getByTestId('answer-row');
-    await expect(rows.nth(0)).toContainText('Stop and ask a doctor');
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('compare')).toContainText('You chose Advanced Underarm Pigmentation Kit');
+    await expect(page.getByTestId('compare')).toContainText('Better fit for you: 4% AHA BHA Underarm Roll On');
+    await expect(page.getByTestId('price-diff')).toHaveText('4% AHA BHA Underarm Roll On costs Rs 530 less.');
+    const a = await page.getByTestId('switch-best').boundingBox();
+    const b = await page.getByTestId('keep-mine').boundingBox();
+    expect(Math.abs(a!.height - b!.height)).toBeLessThan(2);
+    for (const id of ['switch-best', 'keep-mine']) {
+      const fits = await page.getByTestId(id).evaluate((el) => el.scrollHeight <= el.clientHeight);
+      expect(fits, `${id} text overflows`).toBe(true);
+    }
+    await expect(page.getByTestId('save-plan')).toHaveCount(0);
+    await page.getByTestId('keep-mine').click();
+    await page.getByTestId('save-plan').click();
+    await expect(page).toHaveURL(/\/start$/);
+    expect((await savedPlan(page))?.trialProduct).toBe('bw-kit-6');
+  });
+
+  test('spec 3.6: same pick says Good choice', async ({ page }) => {
+    const mock = await setup(page);
+    await riyaShelf(page, mock);
+    await page.getByTestId('primary').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('same-choice')).toHaveText("Good choice. Here's why it fits you.");
+    await expect(page.getByTestId('compare')).toHaveCount(0);
+  });
+
+  test('AC-05-5 and AC-05b-8: a steroid on underarms is listed first, the doctor link leads, buy still works', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    await addCatalogProduct(page, mock, 'bw-niacinamide-lotion', { time: 'morning' });
+    await addTypedProduct(page, mock, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { time: 'night' }, { ...REVIEWS.default, productType: 'other', culprits: [{ ingredient: 'Mometasone Furoate', concern: 'steroid', why: 'A prescription steroid.' }], action: 'ask-doctor', actionWhy: "Mometasone Furoate needs a doctor's eye." });
+    await page.getByTestId('primary').click();
+    const rows = page.getByTestId('review-row');
+    await expect(rows.nth(0)).toContainText('Ask a doctor');
     await expect(rows.nth(0)).toContainText('Derma steroid cream');
     await expect(page.getByTestId('doctor-link')).toHaveText('Talk to the Bodywise in-app doctor');
     await page.getByTestId('primary').click();

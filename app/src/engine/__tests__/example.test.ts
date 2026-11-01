@@ -22,15 +22,30 @@ describe("Riya's example: every jump key resolves (AC-22-5)", () => {
     }
   });
 
-  it("plan is built by the engine: Riya's four rows, 4% No Fragrance Rs 329", () => {
+  it("plan is built by the engine: Riya's three underarm products, 4% No Fragrance Rs 329", () => {
     const { plan } = exampleState('day-0');
     expect(plan.fitResult.outcome).toBe('good-with-habit');
-    expect(plan.shelfAnswers.map((a) => a.answer)).toEqual(['pick-one', 'split-time', 'wait', 'fine']);
+    expect(plan.shelfAnswers.map((a) => a.answer)).toEqual(['pick-one', 'split-time', 'wait']);
     expect(plan.pick).toMatchObject({ pick: 'bw-rollon-4', variant: 'no-fragrance', priceInr: 329, ruleRow: 8 });
     expect(plan.trialProduct).toBe('bw-rollon-4');
     expect(plan.startPlan?.productId).toBe('bw-rollon-4');
     expect(plan.day0).toBe('2026-10-17');
     expect(plan.photoIds).toHaveLength(2);
+  });
+
+  it('seeded reviews: no AI call in example mode, one paused and one kept product (spec 8)', () => {
+    const { plan } = exampleState('day-0');
+    expect(plan.shelf.map((i) => [i.id, i.review?.action, i.trialChoice])).toEqual([
+      ['riya-toner', 'pause-during-trial', 'keep'],
+      ['riya-spray', 'pause-during-trial', 'pause'],
+      ['riya-cream', 'different-time', undefined],
+    ]);
+    expect(plan.shelf.every((i) => i.review?.status === 'ok' && i.review.provider === 'example' && i.review.promptVersion === 'shelf-review-v1')).toBe(true);
+  });
+
+  it('the verdict names the toner she kept', () => {
+    const { plan } = exampleState('day-56-working');
+    expect(plan.verdict?.reasons.at(-1)).toBe("You also kept using Glow 7% Glycolic Toner, so we can't be sure which one made the difference.");
   });
 
   it('check: before Day 0, no trial product yet', () => {

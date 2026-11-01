@@ -23,6 +23,8 @@ export { startPlan } from './startPlan';
 export { costIsEstimate, nextCheckDate, pauseEntries, trialClock, weeksInBucket } from './trialClock';
 export { ESCALATION_LINE, suspectItem, triageReaction } from './triageReaction';
 export { stepUpTarget, verdict } from './verdict';
+export { joinNames, needsTrialChoice, openVariables } from './openVariables';
+export type { OpenVariable } from './openVariables';
 export { makePlanCode } from './planCode';
 export { fnv1a, rulesVersion } from './rulesVersion';
 export { EXAMPLE_DATES, EXAMPLE_STOPS, RIYA_FIT, exampleState, riyaShelf } from './example';
