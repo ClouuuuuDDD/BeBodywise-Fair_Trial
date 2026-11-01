@@ -22,7 +22,8 @@ The app opens in a **guided demo**, so anyone can play the whole journey in a fe
 - **Skin photos never leave the phone.** They are stored in IndexedDB and measured in a Web Worker in the browser.
 - **Label photos** go to one serverless function (`functions/api/read-label.ts`) that reads and reviews them with a free AI provider chain: Gemini first, then Workers AI, OpenRouter and Groq as backups. Nothing is stored and the image is never logged.
 - **The AI judges her other underarm products.** Code still decides the product pick and the verdict, and enforces hard red lines (steroid, hydroquinone, bleach, mercury: ask a doctor).
-- **Only three answers leave the phone** with a label: shade, how long, and hair removal. Skin photos never leave the phone.
+- **What is sent with a label:** the label photo or the typed text; the Be Bodywise product's name and ingredients; for each of her other underarm products, its name, ingredients, when she uses it and whether it has stung her; and three answers: shade, how long, and hair removal. Nothing else (no neck or period answers, no ids).
+- **Google may use free-tier data to improve its products.** The Gemini free tier allows this, so do not photograph anything private on a label. The backup providers have their own free-tier terms.
 - No login, no account, no tracking of names or numbers.
 
 ## Run it locally
@@ -55,7 +56,7 @@ To build the plain app without the guided demo, set `VITE_GUIDED_DEMO=0` at buil
    - **Build output directory:** `app/dist`
    - **Environment variable:** `NODE_VERSION` = `22`
 3. Under **Settings → Variables and Secrets**, add the secret `GEMINI_API_KEY` (required) for Production and Preview. `OPENROUTER_API_KEY` and `GROQ_API_KEY` are optional backups.
-4. For Workers AI (no key), go to **Settings → Bindings → Workers AI** and add a binding with variable name `AI`. Then redeploy.
+4. Workers AI needs no key and no dashboard step: `wrangler.toml` declares the binding (`[ai] binding = "AI"`), and Pages picks it up on deploy.
 
 Every push to `main` redeploys.
 
