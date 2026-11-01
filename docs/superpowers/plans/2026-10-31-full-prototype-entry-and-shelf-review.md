@@ -792,7 +792,7 @@ git commit -m "Shelf review: validate model answers, culprits must be on the lab
   - `runChain<T>(task: ModelTask<T>, env: ProviderEnv, deps: { fetch: typeof fetch; now: () => number }): Promise<{ ok: true; value: T; provider: ProviderId; model: string } | { ok: false; tried: ProviderId[] }>`
   - `CHAIN_LIMITS = { deadlineMs: 22_000, attemptMs: 9_000, minAttemptMs: 4_000 }`
 
-The `CHAIN` flags below are the defaults; change each entry to match the spike note before writing the tests.
+The `CHAIN` below already follows the approved spike decisions (engineering/notes/provider-spike-2026-10-31.md): Gemma dropped, OpenRouter with `reasoning: { enabled: false }`, Groq reads photos. Order: Gemini 3.5, Gemini 3.1, Workers AI, OpenRouter, Groq.
 
 - [ ] **Step 1: Write the failing tests** `app/src/label/providers.test.ts`:
 
@@ -830,6 +830,12 @@ describe('runChain', () => {
     const r = await runChain(task(), allKeys, { fetch: f, now: () => 0 });
     expect(r.ok).toBe(true);
     expect(f.mock.calls.length).toBe(4);
+  });
+
+  it('sends OpenRouter the reasoning switch from its entry', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(chatOk('good'));
+    await runChain(task(), { OPENROUTER_API_KEY: 'o' }, { fetch: f, now: () => 0 });
+    expect(JSON.parse(f.mock.calls[0]![1]!.body as string).reasoning).toEqual({ enabled: false });
   });
 
   it('a timeout skips the same provider\'s next model', async () => {
@@ -903,6 +909,8 @@ export interface ChainEntry {
   jsonMode: 'schema' | 'object' | 'prompt';
   /** False when the model rejects a system role (the system text is put before the user text instead). */
   systemRole: boolean;
+  /** Provider-specific body fields (api "openai" only), e.g. OpenRouter's reasoning switch. */
+  extra?: Record<string, unknown>;
 }
 
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
@@ -912,9 +920,9 @@ export const CHAIN: readonly ChainEntry[] = [
   { provider: 'gemini', model: 'gemini-3.5-flash-lite', api: 'gemini-native', vision: true, jsonMode: 'schema', systemRole: true },
   { provider: 'gemini', model: 'gemini-3.1-flash-lite', api: 'gemini-native', vision: true, jsonMode: 'schema', systemRole: true },
   { provider: 'workers-ai', model: '@cf/meta/llama-4-scout-17b-16e-instruct', api: 'workers-ai', vision: true, jsonMode: 'schema', systemRole: true },
-  { provider: 'gemini', model: 'gemma-4-31b-it', api: 'openai', url: `${GEMINI}/openai/chat/completions`, vision: true, jsonMode: 'prompt', systemRole: false },
-  { provider: 'openrouter', model: 'nvidia/nemotron-3.5-super-vl:free', api: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', vision: true, jsonMode: 'object', systemRole: true },
-  { provider: 'groq', model: 'qwen/qwen3.8-27b', api: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', vision: false, jsonMode: 'schema', systemRole: true },
+  // Nemotron is a reasoning model: with thinking on it spends the whole budget and returns no content (spike, 1 Nov 2026).
+  { provider: 'openrouter', model: 'nvidia/nemotron-3.5-super-vl:free', api: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', vision: true, jsonMode: 'object', systemRole: true, extra: { reasoning: { enabled: false } } },
+  { provider: 'groq', model: 'qwen/qwen3.8-27b', api: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', vision: true, jsonMode: 'schema', systemRole: true },
 ];
 
 export const CHAIN_LIMITS = { deadlineMs: 22_000, attemptMs: 9_000, minAttemptMs: 4_000, maxOutputTokens: 2048 } as const;
@@ -1041,6 +1049,7 @@ async function callEntry(e: ChainEntry, model: string, key: string, env: Provide
     temperature: 0,
     max_tokens: CHAIN_LIMITS.maxOutputTokens,
     messages: chatMessages(e, t),
+    ...(e.extra ?? {}),
     ...(response_format ? { response_format } : {}),
   }, ms)) as { choices?: { message?: { content?: unknown } }[] };
   const c = json.choices?.[0]?.message?.content;
