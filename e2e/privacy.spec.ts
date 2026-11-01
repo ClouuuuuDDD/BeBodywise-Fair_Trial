@@ -114,20 +114,49 @@ test.describe('privacy', () => {
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf$/);
 
+    // Second product (typed), so the review-text call carries the first product in shelfSoFar.
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Second Cream');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await expect(page).toHaveURL(/\/check\/shelf\/confirm/);
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page).toHaveURL(/\/check\/shelf$/);
+
+    // front + ingredients + review-text (stung) for product 1, review-text for the typed product.
+    await expect.poll(() => bodies.length).toBeGreaterThanOrEqual(4);
+    expect(bodies.map((b) => b.kind).sort()).toEqual(['front', 'ingredients', 'review-text', 'review-text']);
+
+    type Ctx = { her?: Record<string, unknown>; target?: Record<string, unknown>; shelfSoFar?: Record<string, unknown>[]; thisProduct?: Record<string, unknown> };
     const allowed: Record<string, string[]> = {
       front: ['kind', 'image', 'mime'],
       ingredients: ['kind', 'image', 'mime', 'context'],
       'review-text': ['kind', 'ingredientsText', 'productName', 'context'],
     };
-    expect(bodies.map((b) => b.kind).sort()).toEqual(['front', 'ingredients', 'review-text']);
+    let sawShelf = false;
     for (const b of bodies) {
-      expect(Object.keys(b).every((k) => allowed[b.kind as string]!.includes(k)), JSON.stringify(Object.keys(b))).toBe(true);
-      const ctx = b.context as { her?: Record<string, unknown> } | undefined;
-      if (ctx) {
-        expect(Object.keys(ctx).sort()).toEqual(['her', 'shelfSoFar', 'target', 'thisProduct']);
-        expect(Object.keys(ctx.her ?? {}).sort()).toEqual(['duration', 'hairRemoval', 'shade']);
+      const kind = b.kind as string;
+      expect(Object.keys(b).every((k) => allowed[kind]!.includes(k)), JSON.stringify(Object.keys(b))).toBe(true);
+      if (kind === 'front') {
+        expect(b.context, 'front carries no context').toBeUndefined();
+      } else {
+        const ctx = b.context as Ctx | undefined;
+        expect(ctx, `${kind} must carry context`).toBeDefined();
+        expect(Object.keys(ctx!).sort()).toEqual(['her', 'shelfSoFar', 'target', 'thisProduct']);
+        expect(ctx!.her).toEqual({ shade: 'moderate', duration: 'year-plus', hairRemoval: 'razor' });
+        expect(Object.keys(ctx!.target ?? {}).sort()).toEqual(['ingredients', 'name']);
+        for (const k of Object.keys(ctx!.thisProduct ?? {})) expect(['frontName', 'stung', 'when']).toContain(k);
+        for (const item of ctx!.shelfSoFar ?? []) {
+          sawShelf = true;
+          expect(Object.keys(item).sort()).toEqual(['ingredients', 'name', 'stung', 'when']);
+        }
       }
-      expect(JSON.stringify(b)).not.toMatch(/darkNeck|regularPeriods|pregnan|planCode|trialId/);
+      const { image: _image, ...rest } = b;
+      void _image;
+      expect(JSON.stringify(rest)).not.toMatch(/darkNeck|regularPeriods|pregnan|planCode|trialId|"id"|[a-z]Id"/);
     }
+    expect(sawShelf, 'some body has a non-empty shelfSoFar').toBe(true);
   });
 });
