@@ -47,8 +47,8 @@ export interface ReadLabelResponse {
 export const LIMITS = {
   /** Decoded image bytes, after the phone resized it to ~1280 px. */
   maxImageBytes: 1_500_000,
-  /** Requests per IP per window, per isolate (best effort, not shared across isolates). */
-  rateMax: 12,
+  /** Requests per IP per window, per isolate (best effort, not shared across isolates). Each product can take 3 calls. */
+  rateMax: 30,
   rateWindowMs: 60_000,
   /** The `context` object of a review request, as JSON. */
   contextMaxChars: 16_384,
