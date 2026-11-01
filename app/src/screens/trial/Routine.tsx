@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { ShelfItem } from '../../contracts';
 import { ensureStartPlan } from '../../state/trial';
 import { track } from '../../state/vault';
 import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, TextLink } from '../../ui';
 import { MASCOTS, type MascotId } from '../../ui';
+import { CleanTrialCard, allChosen } from './components/CleanTrialCard';
 import { lowerFirst } from './components/format';
 import { useTrialScreen } from './components/useTrialScreen';
 import styles from './components/trial.module.css';
@@ -36,6 +37,7 @@ function Sun() {
 export default function Routine() {
   const s = useTrialScreen();
   const { search } = useLocation();
+  const navigate = useNavigate();
   const fromHome = new URLSearchParams(search).get('from') === 'home';
   const plan = s.plan;
   useEffect(() => {
@@ -120,6 +122,8 @@ export default function Routine() {
         </section>
       ))}
 
+      <CleanTrialCard plan={plan} judgeBy={s.trial?.judgeByDate} />
+
       <ol data-scroll-x tabIndex={0} aria-label="Three habits" className={styles.rules}>
         {sp.rules.map((r, i) => (
           <li key={i}>
@@ -133,8 +137,12 @@ export default function Routine() {
 
       <BottomBar>
         <PrimaryButton
-          to={fromHome ? '/trial' : '/start/photo?site=underarm'}
-          onClick={() => track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length })}
+          disabled={!allChosen(plan.shelf)}
+          onClick={() => {
+            if (!allChosen(plan.shelf)) return;
+            track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length });
+            void navigate(fromHome ? '/trial' : '/start/photo?site=underarm');
+          }}
         >
           Got it
         </PrimaryButton>
