@@ -16,6 +16,7 @@
     "fragrance": { "label": "Fragrance", "match": ["parfum", "perfume", "fragrance", "limonene", "linalool", "citral", "geraniol", "eugenol", "citronellol"] },
     "physical-scrub": { "label": "Scrub particles", "match": ["walnut shell powder", "juglans regia shell powder", "apricot seed powder", "perlite", "pumice", "sugar", "sucrose", "polyethylene beads"] },
     "bleach": { "label": "Bleach", "match": ["hydrogen peroxide", "ammonium persulfate", "potassium persulfate"] },
+    "mercury": { "label": "Mercury (unsafe on skin)", "match": ["mercury", "mercurous chloride", "mercuric chloride", "ammoniated mercury", "calomel", "hydrargyrum", "thimerosal", "thiomersal", "phenylmercuric acetate"] },
     "soothing": { "label": "Soothing", "match": ["aloe barbadensis leaf juice", "aloe vera extract", "panthenol", "allantoin", "centella asiatica extract", "ceramide np", "glycerin", "urea"] },
     "sunscreen": { "label": "Sunscreen", "match": ["zinc oxide", "titanium dioxide", "avobenzone", "butyl methoxydibenzoylmethane", "octocrylene", "ethylhexyl methoxycinnamate", "bemotrizinol", "bis-ethylhexyloxyphenol methoxyphenyl triazine", "diethylamino hydroxybenzoyl hexyl benzoate", "ethylhexyl triazone", "homosalate"] }
   },
@@ -45,6 +46,7 @@
     { "id": "steroid-anywhere-underarm", "if": ["steroid"], "area": "underarm", "answer": "stop-ask", "say": "{product} has {ingredient}, a prescription steroid. On underarms it can thin the skin and make darkness worse. Please stop using it there and show this to a doctor.", "priority": 1 },
     { "id": "hydroquinone", "if": ["hydroquinone"], "area": "underarm", "answer": "stop-ask", "say": "{product} has hydroquinone. Don't add acids on top of it. A doctor should decide which one you use.", "priority": 1 },
     { "id": "bleach", "if": ["bleach"], "area": "underarm", "answer": "stop-ask", "say": "{product} is a bleach. Please don't use it on underarm skin, and never with acids.", "priority": 1 },
+    { "id": "mercury", "if": ["mercury"], "area": "underarm", "answer": "stop-ask", "say": "{product} has {ingredient}, which is not safe on skin. Please stop using it and show this to a doctor.", "priority": 1 },
     { "id": "acid-acid", "if": ["aha|bha", "aha|bha"], "same_area": true, "answer": "pick-one", "say": "Both are exfoliating acids ({ingredient_a} and {ingredient_b}). On your underarms, use only one. {other} can stay on your {other_areas}.", "priority": 2 },
     { "id": "acid-retinoid", "if": ["aha|bha", "retinoid"], "same_area": true, "same_time": true, "answer": "split-time", "say": "Acid in the morning, {ingredient_b} at night. Never both at once.", "priority": 2, "else_if_different_time": "fine" },
     { "id": "acid-bpo", "if": ["aha|bha", "benzoyl-peroxide"], "same_area": true, "answer": "split-time", "say": "Use them at different times of day, or on different days.", "priority": 2 },

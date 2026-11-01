@@ -101,3 +101,12 @@ describe('retake rule (spec "Reading labels")', () => {
     expect(readLabel([]).needsRetake).toBe(true);
   });
 });
+
+describe('mercury is a red-line class', () => {
+  it('matches mercury salts and thimerosal', () => {
+    const list = classifyIngredients('Aqua, Mercurous Chloride, Ammoniated Mercury, Thimerosal, Glycerin');
+    expect(list[1]?.classes).toEqual(['mercury']);
+    expect(list[2]?.classes).toEqual(['mercury']);
+    expect(list[3]?.classes).toEqual(['mercury']);
+  });
+});
