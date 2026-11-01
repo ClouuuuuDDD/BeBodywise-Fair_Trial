@@ -44,12 +44,29 @@ describe('runChain', () => {
     expect(JSON.parse(f.mock.calls[0]![1]!.body as string).reasoning).toEqual({ enabled: false });
   });
 
-  it('a timeout skips the same provider\'s next model', async () => {
+  it('a 9 s timeout on the first Gemini model still tries the second (13 s left)', async () => {
+    let clock = 0;
     const f = vi.fn<typeof fetch>()
-      .mockRejectedValueOnce(new DOMException('timeout', 'TimeoutError'))
+      .mockImplementationOnce(async () => {
+        clock += CHAIN_LIMITS.attemptMs;
+        throw new DOMException('timeout', 'TimeoutError');
+      })
+      .mockResolvedValue(geminiOk('good'));
+    const r = await runChain(task(), { GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: 'o' }, { fetch: f, now: () => clock });
+    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: CHAIN[1]!.model });
+    expect(String(f.mock.calls[1]![0])).toContain(`models/${CHAIN[1]!.model}:generateContent`);
+  });
+
+  it('a timeout skips the same provider\'s next model only when less than 2 x minAttemptMs is left', async () => {
+    let clock = 0;
+    const f = vi.fn<typeof fetch>()
+      .mockImplementationOnce(async () => {
+        clock = CHAIN_LIMITS.deadlineMs - 2 * CHAIN_LIMITS.minAttemptMs + 1; // just under 8 s left
+        throw new DOMException('timeout', 'TimeoutError');
+      })
       .mockResolvedValue(chatOk('good'));
-    const r = await runChain(task(), { GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: 'o' }, { fetch: f, now: () => 0 });
-    expect(r.ok && r.provider).not.toBe('gemini');
+    const r = await runChain(task(), { GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: 'o' }, { fetch: f, now: () => clock });
+    expect(r.ok && r.provider).toBe('openrouter');
     expect(f.mock.calls.filter(([u]) => String(u).includes(':generateContent'))).toHaveLength(1);
   });
 

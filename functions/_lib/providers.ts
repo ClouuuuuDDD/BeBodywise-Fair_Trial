@@ -167,8 +167,9 @@ async function callEntry(e: ChainEntry, model: string, key: string, env: Provide
 
 /**
  * Tries each entry in order within one deadline. Each attempt gets min(attemptMs, time left) and starts only if
- * minAttemptMs is left. Any failure moves on (no same-model retry); a timeout also skips the same provider's next
- * entry, because a slow API is usually slow for all its models.
+ * minAttemptMs is left. Any failure moves on (no same-model retry). After a timeout, the same provider's next entry
+ * is skipped only when less than 2 x minAttemptMs is left (then a different provider is the better last try);
+ * otherwise it is tried, so a slow first Gemini model does not cost the more reliable second one.
  */
 export async function runChain<T>(task: ModelTask<T>, env: ProviderEnv, deps: { fetch: typeof fetch; now: () => number }): Promise<ChainResult<T>> {
   const start = deps.now();
@@ -177,10 +178,11 @@ export async function runChain<T>(task: ModelTask<T>, env: ProviderEnv, deps: { 
   for (const [i, e] of CHAIN.entries()) {
     const key = keyFor(e, env);
     if (!key || (task.imageBase64 && !e.vision)) continue;
-    if (skip === e.provider) continue;
-    skip = null;
     const left = CHAIN_LIMITS.deadlineMs - (deps.now() - start);
     if (left < CHAIN_LIMITS.minAttemptMs) break;
+    const skipThis = skip === e.provider && left < 2 * CHAIN_LIMITS.minAttemptMs;
+    skip = null;
+    if (skipThis) continue;
     const model = modelFor(e, env, i);
     tried.push(e.provider);
     try {
