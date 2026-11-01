@@ -78,15 +78,22 @@ export function applyRedLines(review: ReviewOut, sourceText: string): ReviewOut 
     .map((i) => ({ inci: i.inci, cls: i.classes.find((c): c is RedLine => (RED_LINES as readonly string[]).includes(c)) }))
     .filter((h): h is { inci: string; cls: RedLine } => h.cls !== undefined);
   if (hits.length === 0) return review;
-  const culprits = [...review.culprits];
+  // Red-line culprits go first, so the cap never cuts them: the AI's own culprit for an ingredient when it named one, else ours.
+  const redKeys = new Set<string>();
+  const redCulprits: ReviewOut['culprits'] = [];
   for (const h of hits) {
-    if (!culprits.some((c) => squash(c.ingredient) === squash(h.inci))) culprits.push({ ingredient: h.inci, concern: h.cls, why: RED_LINE_WHY[h.cls] });
+    const key = squash(h.inci);
+    if (redKeys.has(key)) continue;
+    redKeys.add(key);
+    redCulprits.push(review.culprits.find((c) => squash(c.ingredient) === key) ?? { ingredient: h.inci, concern: h.cls, why: RED_LINE_WHY[h.cls] });
   }
-  if (review.action === 'ask-doctor') return { ...review, culprits: culprits.slice(0, REVIEW_LIMITS.culprits) };
+  const others = review.culprits.filter((c) => !redKeys.has(squash(c.ingredient)));
+  const culprits = [...redCulprits, ...others].slice(0, REVIEW_LIMITS.culprits);
+  if (review.action === 'ask-doctor') return { ...review, culprits };
   const first = hits[0]!;
   return {
     ...review,
-    culprits: culprits.slice(0, REVIEW_LIMITS.culprits),
+    culprits,
     action: 'ask-doctor',
     actionWhy: `${first.inci} needs a doctor's eye. Please don't use this on your underarms until a doctor has seen the label.`.slice(0, REVIEW_LIMITS.actionWhy),
     redLineApplied: true,

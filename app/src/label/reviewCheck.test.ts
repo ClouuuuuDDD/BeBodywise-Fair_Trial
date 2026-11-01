@@ -72,4 +72,16 @@ describe('applyRedLines', () => {
     expect(out.redLineApplied).toBeUndefined();
     expect(applyRedLines({ ...keep, culprits: [] }, 'Aqua, Glycerin')).toMatchObject({ action: 'keep' });
   });
+  it('keeps the red-line culprit first when the AI already named 8 others', () => {
+    const eight = Array.from({ length: 8 }, (_, i) => ({ ingredient: `A${i + 1}`, concern: 'other-irritant' as const, why: 'x' }));
+    const r = applyRedLines({ ...keep, culprits: eight, action: 'keep' }, 'Aqua, A1, A2, A3, A4, A5, A6, A7, A8, Clobetasol Propionate');
+    expect(r.culprits).toHaveLength(8);
+    expect(r.culprits[0]!.ingredient).toBe('Clobetasol Propionate');
+    expect(r.action).toBe('ask-doctor');
+  });
+  it('lists a red-line ingredient once even if the label repeats it', () => {
+    const r = applyRedLines({ ...keep, culprits: [] }, 'Aqua, Hydroquinone, Glycerin, Hydroquinone');
+    expect(r.culprits).toHaveLength(1);
+    expect(r.culprits[0]!.ingredient).toBe('Hydroquinone');
+  });
 });
