@@ -670,7 +670,7 @@ export interface VerdictInput {
   /** Today, for newDate. */
   today: ISODate;
   /** Shelf products she kept using against the review's advice, or that were never checked (spec 3.8). */
-  openVariables?: { name: string }[];
+  openVariables?: { name: string; why: 'kept' | 'unchecked' }[];
 }
 
 /* ------------------------------------------------------------------ */

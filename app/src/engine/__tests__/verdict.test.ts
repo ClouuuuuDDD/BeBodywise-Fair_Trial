@@ -254,10 +254,43 @@ describe('open variables line (spec 3.8)', () => {
   it('adds one reason naming what she kept, and changes nothing else', () => {
     const input = verdictInput(); // V5 Working, three reasons
     const plain = verdict(input);
-    const withOpen = verdict({ ...input, openVariables: [{ name: 'Glow 7% Glycolic Toner' }, { name: 'Fresh Bloom Deo Spray' }] });
+    const withOpen = verdict({
+      ...input,
+      openVariables: [
+        { name: 'Glow 7% Glycolic Toner', why: 'kept' },
+        { name: 'Fresh Bloom Deo Spray', why: 'kept' },
+      ],
+    });
     expect(withOpen.outcome).toBe(plain.outcome);
     expect(withOpen.rule).toBe(plain.rule);
     expect(withOpen.reasons).toEqual([...plain.reasons, "You also kept using Glow 7% Glycolic Toner and Fresh Bloom Deo Spray, so we can't be sure which one made the difference."]);
     expect(verdict({ ...input, openVariables: [] }).reasons).toEqual(plain.reasons);
+  });
+
+  it('never says "kept using" for a product we could not check', () => {
+    const input = verdictInput();
+    const plain = verdict(input);
+    const v = verdict({ ...input, openVariables: [{ name: 'Fresh Bloom Deo Spray', why: 'unchecked' }] });
+    expect(v.reasons).toEqual([...plain.reasons, "We couldn't check Fresh Bloom Deo Spray, so we can't be sure which one made the difference."]);
+    expect(v.reasons.join(' ')).not.toMatch(/kept using/);
+  });
+
+  it('kept and unchecked both present: two lines, kept first', () => {
+    const input = verdictInput();
+    const plain = verdict(input);
+    const v = verdict({
+      ...input,
+      openVariables: [
+        { name: 'Fresh Bloom Deo Spray', why: 'unchecked' },
+        { name: 'Glow 7% Glycolic Toner', why: 'kept' },
+        { name: 'Calm Mist', why: 'unchecked' },
+      ],
+    });
+    expect(v.outcome).toBe(plain.outcome);
+    expect(v.reasons).toEqual([
+      ...plain.reasons,
+      "You also kept using Glow 7% Glycolic Toner, so we can't be sure which one made the difference.",
+      "We couldn't check Fresh Bloom Deo Spray and Calm Mist, so we can't be sure which one made the difference.",
+    ]);
   });
 });

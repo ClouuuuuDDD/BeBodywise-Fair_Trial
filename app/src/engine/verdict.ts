@@ -155,13 +155,22 @@ function recheck(input: VerdictInput, rule: VerdictRuleId, reasons: string[], ex
  */
 export function verdict(input: VerdictInput): Verdict {
   const v = baseVerdict(input);
-  const names = (input.openVariables ?? []).map((o) => o.name);
-  return names.length === 0 ? v : { ...v, reasons: [...v.reasons, openVariableLine(names)] };
+  const lines = openVariableLines(input.openVariables ?? []);
+  return lines.length === 0 ? v : { ...v, reasons: [...v.reasons, ...lines] };
 }
 
-/** Spec 3.8: one extra reason, the outcome logic is unchanged. */
-export function openVariableLine(names: string[]): string {
-  return `You also kept using ${joinNames(names)}, so we can't be sure which one made the difference.`;
+/**
+ * Spec 3.8: extra reasons, the outcome logic is unchanged. Kept (she chose to keep using it) and unchecked
+ * (we could not check it) get different wording; a product we never checked is never called "kept using".
+ * Both present: two lines, kept first.
+ */
+export function openVariableLines(open: NonNullable<VerdictInput['openVariables']>): string[] {
+  const kept = open.filter((o) => o.why === 'kept').map((o) => o.name);
+  const unchecked = open.filter((o) => o.why === 'unchecked').map((o) => o.name);
+  const lines: string[] = [];
+  if (kept.length > 0) lines.push(`You also kept using ${joinNames(kept)}, so we can't be sure which one made the difference.`);
+  if (unchecked.length > 0) lines.push(`We couldn't check ${joinNames(unchecked)}, so we can't be sure which one made the difference.`);
+  return lines;
 }
 
 function baseVerdict(input: VerdictInput): Verdict {
