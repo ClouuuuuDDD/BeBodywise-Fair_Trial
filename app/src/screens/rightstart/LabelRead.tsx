@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import type { ShelfItem, ShelfReview, UseTime } from '../../contracts';
 import { classesOf, classifyIngredients, makeShelfItem } from '../../engine';
@@ -53,13 +53,24 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
   const ready = time !== undefined;
   const [checking, setChecking] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  const busy = useRef(false);
+  const unmounted = useRef(false);
+  // Leaving 04b mid-check aborts the call and commits nothing (no add, no navigate from a dead screen).
+  useEffect(
+    () => () => {
+      unmounted.current = true;
+      abort.current?.abort();
+    },
+    [],
+  );
   const listEdited = list.join('|') !== draft.inci.join('|');
   // Spec 3.4: an edited list or a new "stung" means the photo's review is stale; re-judge from text on "Looks right".
   const current: ShelfReview | undefined = draft.review && (listEdited || stung) ? { ...draft.review, status: 'stale' } : draft.review;
   const needsReview = !current || current.status !== 'ok';
 
   async function commit(antiperspirantFor?: 'sweat' | 'smell' | 'both') {
-    if (!ready || !time) return;
+    if (!ready || !time || busy.current) return;
+    busy.current = true;
     const base = makeShelfItem({
       id: newItemId(),
       product: displayName,
@@ -77,6 +88,8 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
       abort.current = new AbortController();
       review = await reviewShelfItem(base, reviewContextFor({ frontName: displayName, when: time, stung }), todayISO(), { signal: abort.current.signal });
       abort.current = null;
+      // She left 04b: add nothing. "Add it now, check later" also aborts, but she is still here, so it adds as failed.
+      if (unmounted.current) return;
       setChecking(false);
     }
     const item: ShelfItem = { ...base, review: review ?? failedReview(todayISO()) };
@@ -95,7 +108,7 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
   }
 
   function primary() {
-    if (!ready) return;
+    if (!ready || busy.current) return;
     if (classes.includes('antiperspirant')) {
       setAskSweat(true);
       return;
@@ -216,9 +229,13 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
           <p className={styles.needHint} role="status" data-testid="confirm-hint">
             {confirm.needWhen}
           </p>
+        ) : checking ? (
+          <p className={styles.needHint} role="status" data-testid="checking-status">
+            {confirm.checking}
+          </p>
         ) : null}
         <PrimaryButton onClick={primary} disabled={!ready} loading={checking} size="md">
-          {checking ? confirm.checking : confirm.primary}
+          {confirm.primary}
         </PrimaryButton>
         {checking ? (
           <TextLink onClick={() => abort.current?.abort()} data-testid="add-unchecked">

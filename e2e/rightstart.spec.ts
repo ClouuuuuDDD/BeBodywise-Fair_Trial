@@ -55,7 +55,7 @@ const REVIEWS: Record<'toner' | 'spray' | 'cream' | 'default', ReviewFixture> = 
 const stamped = (r: ReviewFixture) => ({ ...r, status: 'ok', provider: 'gemini', model: 'gemini-3.5-flash-lite', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31' });
 
 type Mock = {
-  current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void>;
+  current: Fixture; delayMs: number; status: number; requests: number; gate?: Promise<void>; reviewGate?: Promise<void>;
   review: ReviewFixture; reviewStatus: number; bodies: Record<string, unknown>[];
 };
 
@@ -68,6 +68,7 @@ async function setup(page: Page): Promise<Mock> {
     const body = JSON.parse(route.request().postData() ?? '{}') as { kind?: string };
     mock.bodies.push(body);
     if (body.kind === 'review-text') {
+      if (mock.reviewGate) await mock.reviewGate.catch(() => undefined);
       if (mock.reviewStatus !== 200) {
         await route.fulfill({ status: mock.reviewStatus, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'unreadable' }) });
         return;
@@ -510,6 +511,50 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     mock.reviewStatus = 502;
     await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
     await expect(page.getByTestId('shelf-row')).toHaveCount(3);
+  });
+
+  test('04b: while the text check runs, a visible status says so; "Add it now, check later" adds it unchecked', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    let release!: () => void;
+    mock.reviewGate = new Promise<void>((r) => (release = r));
+    mock.review = REVIEWS.default;
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Plain lotion');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('checking-status')).toHaveText('Checking it against your plan…');
+    await expect(page.getByRole('status').filter({ hasText: 'Checking it against your plan' })).toBeVisible();
+    await page.getByTestId('add-unchecked').click();
+    await expect(page).toHaveURL(/\/check\/shelf$/);
+    await expect(page.getByTestId('shelf-row')).toHaveCount(1);
+    release();
+  });
+
+  test('04b: leaving mid-check aborts it and adds nothing', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    let release!: () => void;
+    mock.reviewGate = new Promise<void>((r) => (release = r));
+    mock.review = REVIEWS.default;
+    await page.getByTestId('add-product').click();
+    await page.getByTestId('type-name').click();
+    await page.getByTestId('typed-name').fill('Plain lotion');
+    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
+    await page.getByTestId('type-continue').click();
+    await page.getByTestId('chip-morning').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('checking-status')).toBeVisible();
+    await page.getByTestId('back').click();
+    await expect(page).toHaveURL(/\/check\/shelf\/add/);
+    release();
+    await page.waitForTimeout(300);
+    await expect(page).toHaveURL(/\/check\/shelf\/add/);
+    await page.goto('/check/shelf');
+    await expect(page.getByTestId('shelf-row')).toHaveCount(0);
   });
 
   test('AC-04-3: tapping a row edits when, or removes the product', async ({ page }) => {
