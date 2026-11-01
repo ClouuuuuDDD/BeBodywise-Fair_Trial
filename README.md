@@ -10,7 +10,7 @@ The app opens in a **guided demo**, so anyone can play the whole journey in a fe
 
 | Phase | What happens |
 |---|---|
-| **1 · Before she buys** (Right Start) | Five quick fit questions. She photographs the labels of what is already on her shelf; the app reads the ingredients, checks how they get along with the roll-on, and picks the Be Bodywise product that fits, even when the cheaper one is enough |
+| **1 · Before she buys** (Right Start) | Five quick fit questions. She starts from the Be Bodywise product she has in mind (or photographs a label, or types a name). She photographs the labels of her other underarm products; an AI reads each ingredient list and reviews how it fits her answers, and the app shows what to keep, pause during the trial or stop on skin, then picks the Be Bodywise product that fits, even when the cheaper one is enough |
 | **2 · The day it arrives** | A routine built around her own shelf, two starting photos (underarm and inner arm, with a white paper card for colour), and a judge-by date with the cost to get there |
 | **3 · While she uses it** | One quiet home screen, days of use, a reaction desk ("Something feels off"), a halfway photo and a refill reminder |
 | **4 · The verdict** | The same two photos, measured against her own inner arm, plus a blind pick. The answer can be Working, Not yet, Can't call it, Not for you, or See a doctor |
@@ -20,8 +20,9 @@ The app opens in a **guided demo**, so anyone can play the whole journey in a fe
 ## Privacy by design
 
 - **Skin photos never leave the phone.** They are stored in IndexedDB and measured in a Web Worker in the browser.
-- **Label photos** are sent to one serverless function (`functions/api/read-label.ts`), which asks Google Gemini to transcribe the ingredient list. Nothing is stored and the image is never logged.
-- **The AI only reads labels.** Every decision (clashes, product pick, verdict) is made by plain rules in `app/src/engine`.
+- **Label photos** go to one serverless function (`functions/api/read-label.ts`) that reads and reviews them with a free AI provider chain: Gemini first, then Workers AI, OpenRouter and Groq as backups. Nothing is stored and the image is never logged.
+- **The AI judges her other underarm products.** Code still decides the product pick and the verdict, and enforces hard red lines (steroid, hydroquinone, bleach, mercury: ask a doctor).
+- **Only three answers leave the phone** with a label: shade, how long, and hair removal. Skin photos never leave the phone.
 - No login, no account, no tracking of names or numbers.
 
 ## Run it locally
@@ -30,7 +31,7 @@ Needs Node 22 or newer.
 
 ```bash
 npm install
-cp .dev.vars.example .dev.vars        # then put your Gemini key in GEMINI_API_KEY
+cp .dev.vars.example .dev.vars        # then put your Gemini key in GEMINI_API_KEY (OPENROUTER_API_KEY and GROQ_API_KEY are optional)
 npm run preview                       # builds the app and serves it with the label reader on http://localhost:8788
 ```
 
@@ -53,9 +54,10 @@ To build the plain app without the guided demo, set `VITE_GUIDED_DEMO=0` at buil
    - **Build command:** `npm run build`
    - **Build output directory:** `app/dist`
    - **Environment variable:** `NODE_VERSION` = `22`
-3. Under **Settings → Variables and Secrets**, add the secret `GEMINI_API_KEY` for Production and Preview, then redeploy.
+3. Under **Settings → Variables and Secrets**, add the secret `GEMINI_API_KEY` (required) for Production and Preview. `OPENROUTER_API_KEY` and `GROQ_API_KEY` are optional backups.
+4. For Workers AI (no key), go to **Settings → Bindings → Workers AI** and add a binding with variable name `AI`. Then redeploy.
 
-`OPENROUTER_API_KEY` is an optional backup reader. Every push to `main` redeploys.
+Every push to `main` redeploys.
 
 ## Tests
 

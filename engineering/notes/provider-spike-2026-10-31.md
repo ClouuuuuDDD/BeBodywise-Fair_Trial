@@ -53,3 +53,13 @@ Earlier the same day, Gemini 3.5 Flash Lite timed out (about 34 s even for "say 
 | groq qwen3.8-27b | keep, last | **yes** (it reads photos) | schema | yes | 8K tokens per minute |
 
 **Gate: passed.** Three independent companies answer correctly: Google, NVIDIA via OpenRouter, and Alibaba's Qwen via Groq. All four working models judged the dishwash bar as not for skin. None obeyed the planted instructions.
+
+## Live walk (Task 17, 2026-11-01)
+
+Real keys from `.dev.vars`, built app served by `wrangler pages dev --port 8788 --ai AI`, driven by `scripts/judge-walk.mjs` with `DISHWASH` set. There is no Cloudflare token here, so Workers AI was not available (expected); the first provider answered every call.
+
+- **Provider:** every read-label call was answered by `gemini` / `gemini-3.1-flash-lite` (no fallback needed). Three kinds seen: `front`, `ingredients`, `review-text`.
+- **Latency:** adding a dishwash bar (front photo plus ingredient photo, read and review) took 4.4 to 5.1 s; the toner label took 6.5 s. Server times per call were 2.4 to 5.9 s, well under the 25 s budget.
+- **Dishwash bar:** its ingredient read came back as `stop-on-skin` (not Keep). The toner label and the typed deodorant spray both came back as `pause-during-trial`. Shelf review rows: `stop-on-skin, pause-during-trial, pause-during-trial`.
+- **Whole journey:** every step and the route sweep finished with no failed step. The "Your clean trial" sheet is handled by tapping the first choice ("I'll pause it") for each flagged product, then Continue.
+- **Caveat:** the dishwash photo is a screenshot of an ingredient summary, not a printed label photo, so it is an easier read than a real bottle.
