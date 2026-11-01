@@ -575,15 +575,14 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/match$/);
     await expect(page.getByTestId('running-head')).toHaveText('Right Start · Your match');
-    await expect(page.getByRole('heading', { name: 'Start gentle. Step up later.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Don't stack acids." })).toBeVisible(); // toner is underarm-only now: rule row 3
     await expect(page.getByTestId('best-name')).toHaveText('4% AHA BHA Underarm Roll On');
     await expect(page.getByTestId('best-meta')).toHaveText(/No Fragrance · 50 ml · Rs\s329/);
     const card = page.getByTestId('best-card');
     await expect(card).toContainText('Best');
-    await expect(card.getByRole('listitem')).toHaveCount(3);
-    await expect(card).toContainText('Clearly darker, not 3+ shades: a roll-on is enough.');
-    await expect(card).toContainText('stung you once, so: gentler acids, no fragrance.');
-    await expect(card).toContainText('You use hair removal cream, which leaves skin sensitive.');
+    await expect(card.getByRole('listitem')).toHaveCount(2);
+    await expect(card).toContainText('Finish a fair trial of Glow 7% Glycolic Toner, or switch to the roll-on and stop it.');
+    await expect(card).toContainText('stung you once, so: no fragrance.');
     const strip = page.getByTestId('cost-strip');
     await expect(strip).toContainText('8 weeks to judge');
     await expect(strip).toContainText('2 bottles');
@@ -606,7 +605,7 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(page.getByTestId('placeholder-rules')).toBeVisible();
     await expect.poll(async () => (await eventsNamed(page, 'pick_shown')).length).toBeGreaterThan(0);
     const [shown] = await eventsNamed(page, 'pick_shown');
-    expect(shown).toMatchObject({ product_id: 'bw-rollon-4', variant: 'no-fragrance', rule_row: 8, base_row: 8, hormone_note: false });
+    expect(shown).toMatchObject({ product_id: 'bw-rollon-4', variant: 'no-fragrance', rule_row: 3, base_row: 3, hormone_note: false });
   });
 
   test('AC-05b-6: Buy on Be Bodywise opens a new tab on the catalog URL and logs buy_clicked', async ({ page, context }) => {
@@ -669,6 +668,34 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
 /* ------------------------------------------------------------------ pick variants */
 
 test.describe('05 and 05b variants', () => {
+  test('spec 3.6: her pick differs from the best fit: side by side, equal buttons, her choice becomes the plan', async ({ page }) => {
+    const mock = await setup(page);
+    await page.goto('/?product=bw-kit-6');
+    await riyaShelf(page, mock);
+    await page.getByTestId('primary').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('compare')).toContainText('You chose Advanced Underarm Pigmentation Kit');
+    await expect(page.getByTestId('compare')).toContainText('Better fit for you: 4% AHA BHA Underarm Roll On');
+    await expect(page.getByTestId('price-diff')).toHaveText('4% AHA BHA Underarm Roll On costs Rs 530 less.');
+    const a = await page.getByTestId('switch-best').boundingBox();
+    const b = await page.getByTestId('keep-mine').boundingBox();
+    expect(Math.abs(a!.height - b!.height)).toBeLessThan(2);
+    await expect(page.getByTestId('save-plan')).toHaveCount(0);
+    await page.getByTestId('keep-mine').click();
+    await page.getByTestId('save-plan').click();
+    await expect(page).toHaveURL(/\/start$/);
+    expect((await savedPlan(page))?.trialProduct).toBe('bw-kit-6');
+  });
+
+  test('spec 3.6: same pick says Good choice', async ({ page }) => {
+    const mock = await setup(page);
+    await riyaShelf(page, mock);
+    await page.getByTestId('primary').click();
+    await page.getByTestId('primary').click();
+    await expect(page.getByTestId('same-choice')).toHaveText("Good choice. Here's why it fits you.");
+    await expect(page.getByTestId('compare')).toHaveCount(0);
+  });
+
   test('AC-05-5 and AC-05b-8: a steroid on underarms is listed first, the doctor link leads, buy still works', async ({ page }) => {
     const mock = await setup(page);
     await fitCheck(page, RIYA);

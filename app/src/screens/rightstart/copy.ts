@@ -161,6 +161,12 @@ export const answers = {
 
 export const match = {
   runningHead: 'Right Start · Your match',
+  sameChoice: "Good choice. Here's why it fits you.",
+  youChose: 'You chose',
+  betterFit: 'Better fit for you',
+  switchTo: (name: string) => `Switch to ${name}`,
+  keep: (name: string) => `Keep ${name}`,
+  decideHint: 'Pick one to see how to buy it.',
   best: 'Best for you',
   costWeeks: '8 weeks to judge',
   costBottles: '2 bottles',
