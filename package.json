@@ -12,7 +12,7 @@
   "scripts": {
     "sync-data": "node scripts/sync-data.mjs",
     "dev": "npm run dev -w app",
-    "dev:api": "wrangler pages dev --port 8788",
+    "dev:api": "wrangler pages dev --port 8788 --ai AI",
     "build": "npm run typecheck:functions && npm run build -w app",
     "preview": "npm run build && wrangler pages dev --port 8788",
     "test": "npm run test -w app",

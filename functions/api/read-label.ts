@@ -1,12 +1,15 @@
 /**
  * POST /api/read-label  (Cloudflare Pages Function). Owner: E6.
  *
- * Body: { kind: "front" | "ingredients", image: <base64 JPEG>, mime?: "image/jpeg" }
- * Reply: { ok, kind, name?, brand?, ingredientsText?, provider, error?, message? }
+ * Body, by kind:
+ *   front:       { kind, image: <base64 JPEG>, mime? }                      -> { name, brand }
+ *   ingredients: { kind, image, mime?, context }                            -> { ingredientsText, review }
+ *   review-text: { kind, ingredientsText, productName?, context }          -> { review }
+ * Reply: { ok, kind, provider, model?, name?, brand?, ingredientsText?, review?, error?, message? }
  *
- * Gemini first, OpenRouter free vision model second (if configured). The model only transcribes;
- * the rules in the browser decide. Nothing is stored and the image is never logged.
- * Logic and limits live in functions/_lib/readLabelCore.ts.
+ * The model reads and reviews; code validates it and applies the red lines. `context` is checked against a
+ * strict allow-list (readLabelCore.validateContext). Nothing is stored and the image is never logged.
+ * Provider order lives in functions/_lib/providers.ts. Logic and limits: functions/_lib/readLabelCore.ts.
  */
 import { handleReadLabel, type ReadLabelEnv } from '../_lib/readLabelCore';
 
