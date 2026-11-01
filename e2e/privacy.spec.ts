@@ -2,7 +2,7 @@
  * Privacy check (E7): nothing personal or third-party ships in the app, and the example trial talks to nobody.
  *  - built dist/ and app/src hold no Indian mobile number (10 digits starting 6-9, optional +91 / 0 / spaces / dashes);
  *  - no real competitor brand name (from research/coded/aggregates.json when present, plus a fixed list);
- *  - during the whole example trial the only requests are the app itself, Google Fonts and /api/read-label.
+ *  - during the whole example trial the only requests are the app itself and Google Fonts (no AI call).
  */
 import { expect, test } from '@playwright/test';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -64,7 +64,7 @@ test.describe('privacy', () => {
     expect(hits).toEqual([]);
   });
 
-  test('the example trial makes no request except the app, Google Fonts and /api/read-label', async ({ page }) => {
+  test('the example trial makes no request except the app and Google Fonts (no AI call)', async ({ page }) => {
     const seen: string[] = [];
     page.on('request', (r) => {
       const u = new URL(r.url());
@@ -81,7 +81,7 @@ test.describe('privacy', () => {
     const yes = page.getByTestId('primary');
     if (await yes.count()) await yes.click();
     await page.waitForTimeout(300);
-    const allowed = (s: string) => /^(GET|POST) (fonts\.googleapis\.com|fonts\.gstatic\.com)\//.test(s) || s === 'POST localhost/api/read-label' || s === 'POST 127.0.0.1/api/read-label';
+    const allowed = (s: string) => /^(GET|POST) (fonts\.googleapis\.com|fonts\.gstatic\.com)\//.test(s);
     expect(seen.filter((s) => !allowed(s)), 'unexpected requests').toEqual([]);
   });
 
