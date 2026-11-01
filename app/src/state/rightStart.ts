@@ -31,7 +31,7 @@ import { buildReviewContext, reviewShelfItem } from '../review';
 import { randomUuid, requestPersistence } from '../store';
 import { reloadLive } from './trial';
 import { getStore, track } from './vault';
-import { useExample } from './example';
+import { getExample, useExample } from './example';
 
 const DRAFT_KEY = 'fairtrial.rightstart.draft';
 
@@ -292,15 +292,15 @@ export function reviewContextFor(thisProduct: ReviewContext['thisProduct'], excl
   });
 }
 
-/** "Retry" on 05 for a product whose review failed. */
+/** "Retry" on 05 for a product whose review failed. Never in example mode: the example makes no AI calls. */
 export async function retryShelfReview(id: string): Promise<void> {
   const item = state.shelf.find((i) => i.id === id);
-  if (!item) return;
+  if (!item || getExample() !== null) return;
   const review = await reviewShelfItem(item, reviewContextFor({ when: item.times, stung: item.stung }, id), todayISO());
   await updateShelfItem(id, { review });
 }
 
-/** Changes when she uses a product, or stores its review she uses a product already on the shelf. */
+/** Updates a product already on the shelf: when she uses it, or its review. */
 export async function updateShelfItem(id: string, patch: { times?: UseTime; review?: ShelfReview }): Promise<void> {
   const next = state.shelf.map((i) => (i.id === id ? { ...i, ...patch } : i));
   set({ shelf: next });
