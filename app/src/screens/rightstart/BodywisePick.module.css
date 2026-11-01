@@ -351,3 +351,19 @@
   color: var(--ink-muted);
   font-size: 13.5px;
 }
+
+/* Long product names wrap: let the two decision buttons grow together instead of clipping. */
+.two.decide {
+  align-items: stretch;
+}
+
+.two.decide > * {
+  height: auto;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  white-space: normal;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}

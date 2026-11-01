@@ -17,3 +17,12 @@ export function priceDiffLine(bestName: string, diff: number): string {
   if (diff === 0) return 'Same price.';
   return `${bestName} costs Rs ${Math.abs(diff)} ${diff > 0 ? 'more' : 'less'}.`;
 }
+
+/** Her answer to a "differs" comparison, stored with the pair it answered. */
+export type Decision = { selected: BodywiseProductId; best: BodywiseProductId; choice: BodywiseProductId };
+
+/** The product she settled on, or undefined while a differing comparison is undecided. A decision only counts for the exact pair it was made for. */
+export function resolveChoice(view: ChoiceView, decision: Decision | undefined): BodywiseProductId | undefined {
+  if (view.kind !== 'differs') return view.chosen;
+  return decision && decision.selected === view.selected && decision.best === view.best ? decision.choice : undefined;
+}

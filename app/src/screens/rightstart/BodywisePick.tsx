@@ -9,7 +9,7 @@ import { answerPregnancy, firstTime, pickFor, savePlan, selectProduct, targetPro
 import { AppShell, BottomBar, CornerRibbon, DrMehr, Icon, PlaceholderRulesNote, PrimaryButton, ResultCard, Sheet, TextLink } from '../../ui';
 import { FitGuard } from './components/FitGuard';
 import { ProductArt } from './components/ProductArt';
-import { compareChoice, priceDiffLine } from './components/compareChoice';
+import { compareChoice, priceDiffLine, resolveChoice, type Decision } from './components/compareChoice';
 import { RANGE_NAMES } from './components/rangeNames';
 import { amazonUrl, bodywiseUrl, DOCTOR_URL, rupees } from './components/links';
 import { match as t } from './copy';
@@ -36,7 +36,8 @@ function Match() {
 
   const selected = targetProduct(s);
   const view = compareChoice(selected, pick);
-  const [chosen, setChosen] = useState<BodywiseProductId | undefined>(view.kind === 'differs' ? undefined : view.chosen);
+  const [decision, setDecision] = useState<Decision | undefined>(undefined);
+  const chosen = resolveChoice(view, decision);
   const target: BodywiseProductId = chosen ?? (view.kind === 'differs' ? view.best : selected);
   const deciding = view.kind === 'differs' && chosen === undefined;
   const signature = `${pick.pick}|${pick.ruleRow}|${pick.variant ?? ''}`;
@@ -210,11 +211,11 @@ function Match() {
         {deciding && view.kind === 'differs' ? (
           <>
             <p className={styles.demoNote}>{t.decideHint}</p>
-            <div className={styles.two}>
-              <PrimaryButton size="md" variant="secondary" data-testid="switch-best" onClick={() => { selectProduct(view.best); setChosen(view.best); }}>
+            <div className={`${styles.two} ${styles.decide}`}>
+              <PrimaryButton size="md" variant="secondary" data-testid="switch-best" onClick={() => { selectProduct(view.best); setDecision({ selected: view.selected, best: view.best, choice: view.best }); }}>
                 {t.switchTo(RANGE_NAMES[view.best])}
               </PrimaryButton>
-              <PrimaryButton size="md" variant="secondary" data-testid="keep-mine" onClick={() => setChosen(view.selected)}>
+              <PrimaryButton size="md" variant="secondary" data-testid="keep-mine" onClick={() => setDecision({ selected: view.selected, best: view.best, choice: view.selected })}>
                 {t.keep(RANGE_NAMES[view.selected])}
               </PrimaryButton>
             </div>

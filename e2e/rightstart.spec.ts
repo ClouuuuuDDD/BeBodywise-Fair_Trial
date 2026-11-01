@@ -680,6 +680,10 @@ test.describe('05 and 05b variants', () => {
     const a = await page.getByTestId('switch-best').boundingBox();
     const b = await page.getByTestId('keep-mine').boundingBox();
     expect(Math.abs(a!.height - b!.height)).toBeLessThan(2);
+    for (const id of ['switch-best', 'keep-mine']) {
+      const fits = await page.getByTestId(id).evaluate((el) => el.scrollHeight <= el.clientHeight);
+      expect(fits, `${id} text overflows`).toBe(true);
+    }
     await expect(page.getByTestId('save-plan')).toHaveCount(0);
     await page.getByTestId('keep-mine').click();
     await page.getByTestId('save-plan').click();
