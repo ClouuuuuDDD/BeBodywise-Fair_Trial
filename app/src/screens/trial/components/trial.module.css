@@ -1532,3 +1532,16 @@
   padding: 0;
   list-style: none;
 }
+
+/* Routine with two flagged-product lines (paused spray, kept toner) on the shortest phones. */
+@media (max-height: 780px) {
+  .stage {
+    margin-top: 8px;
+    padding: 8px 14px;
+  }
+
+  .apart {
+    margin-top: 8px;
+    padding: 5px 12px;
+  }
+}

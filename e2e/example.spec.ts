@@ -103,8 +103,8 @@ test.describe('Example trial', () => {
 
   test('AC-07-1: Day 0 routine for Riya', async ({ page }) => {
     await jump(page, 'day-0');
-    await expect(page.getByText('Your usual deodorant.')).toBeVisible();
-    await expect(page.getByTestId('keep-apart').first()).toContainText('face only while you use the roll-on');
+    await expect(page.getByText(/Fresh Bloom Deo Spray: paused until/)).toBeVisible();
+    await expect(page.getByTestId('keep-apart').first()).toContainText('You chose to keep using it');
     await expect(page.getByTestId('placeholder-rules')).toBeVisible();
     await expect(page.getByTestId('running-head')).toHaveText('Day 0 · 1 of 3');
   });
@@ -146,6 +146,7 @@ test.describe('Example trial', () => {
     await page.getByTestId('pick-A').click();
     await expect(page.getByRole('heading', { name: 'Working.' })).toBeVisible();
     await expect(page.getByText('Keep going. Check again in 8 weeks.')).toBeVisible();
+    await expect(page.getByText("You also kept using Glow 7% Glycolic Toner, so we can't be sure which one made the difference.")).toBeVisible();
     await expect(page.locator('body')).not.toContainText(/Rs\s?\d|add to cart|discount/i);
     await expect(page.getByTestId('placeholder-rules')).toBeVisible();
 

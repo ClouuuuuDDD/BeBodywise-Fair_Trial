@@ -6,7 +6,7 @@ import { item } from './helpers';
 
 const byId = (rows: ReturnType<typeof pairRules>, id: string) => rows.find((r) => r.itemId === id)!;
 
-describe("pair rules: Riya's four shelf rows against the 4% roll-on", () => {
+describe("pair rules: Riya's three shelf rows against the 4% roll-on", () => {
   const rows = pairRules(riyaShelf(), 'bw-rollon-4');
 
   it('Glow toner (face + underarms): Pick one here, both acids, names the product and glycolic acid', () => {
@@ -38,15 +38,8 @@ describe("pair rules: Riya's four shelf rows against the 4% roll-on", () => {
     expect(r.reason).toContain('2 days');
   });
 
-  it('Niacinamide body lotion: Fine together', () => {
-    const r = byId(rows, 'riya-lotion');
-    expect(r.answer).toBe('fine');
-    expect(r.ruleId).toBe('brightener-any');
-    expect(r.ingredient).toBe('Niacinamide');
-  });
-
   it('keeps shelf order when nothing needs a doctor', () => {
-    expect(rows.map((r) => r.itemId)).toEqual(['riya-toner', 'riya-spray', 'riya-cream', 'riya-lotion']);
+    expect(rows.map((r) => r.itemId)).toEqual(['riya-toner', 'riya-spray', 'riya-cream']);
   });
 });
 
