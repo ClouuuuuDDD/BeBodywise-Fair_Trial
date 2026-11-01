@@ -129,6 +129,7 @@ await step('confirm-add', async () => {
   if (await page.getByTestId(/^sweat-/).first().isVisible().catch(() => false)) await page.getByTestId(/^sweat-/).first().click();
   await page.waitForURL(/check\/shelf$/);
 });
+let dishName = ''; // the dishwash product's name as read from its front, to find its own row on 05
 await step('dishwash-label', async () => {
   if (!process.env.DISHWASH) return 'skipped (DISHWASH not set)';
   const t0 = Date.now();
@@ -137,9 +138,10 @@ await step('dishwash-label', async () => {
   await tid('photo-upload').setInputFiles(process.env.DISHWASH);
   await page.waitForURL(/\/check\/shelf\/confirm/, { timeout: 60_000 });
   const readMs = Date.now() - t0;
+  dishName = (await page.locator('h1').first().innerText()).trim();
   await tid('chip-morning').click(); await tid('primary').click();
   await page.waitForURL(/\/check\/shelf$/, { timeout: 60_000 });
-  return `read took ${readMs} ms`;
+  return `read took ${readMs} ms; name ${JSON.stringify(dishName)}`;
 });
 await step('typed-deo', async () => {
   await tid('add-product').click(); await tid('type-name').click();
@@ -159,7 +161,11 @@ await step('shelf-answer', async () => {
   const actions = await tid('review-row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-action')));
   console.log('review actions', actions);
   console.log('review rows', await tid('review-row').evaluateAll((rows) => rows.map((r) => `${r.querySelector('b, strong, h3, p')?.textContent?.slice(0, 40)} -> ${r.getAttribute('data-action')}`)));
-  if (process.env.DISHWASH && actions.length && actions.every((a) => a === 'keep')) throw new Error('dishwash bar came out as Keep');
+  if (process.env.DISHWASH) {
+    const dishRow = tid('review-row').filter({ hasText: dishName });
+    if (!dishName || (await dishRow.count()) !== 1) throw new Error(`dishwash row not found (name ${JSON.stringify(dishName)})`);
+    if ((await dishRow.getAttribute('data-action')) === 'keep') throw new Error('dishwash bar came out as Keep');
+  }
   return `review actions: ${actions.join(',')} (${Date.now() - t0} ms)`;
 });
 await step('match', async () => {
