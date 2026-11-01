@@ -608,9 +608,12 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(row).toHaveAttribute('data-action', 'unchecked');
     await expect(row).toContainText("We couldn't check this one.");
     await expect(page.getByRole('heading', { name: "One product isn't checked yet." })).toBeVisible();
+    const summary = page.getByTestId('review-summary');
+    await expect(summary).toHaveAttribute('aria-live', 'polite'); // Retry results are announced
     mock.reviewStatus = 200;
     await page.getByTestId('retry-review').click();
     await expect(row).toHaveAttribute('data-action', 'keep');
+    await expect(summary).not.toHaveText("One product isn't checked yet.");
   });
 
   test('AC-05b-1..3: 4% No Fragrance, cost strip, list price, four other products', async ({ page }) => {

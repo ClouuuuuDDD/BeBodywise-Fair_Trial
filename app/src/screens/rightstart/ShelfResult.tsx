@@ -52,7 +52,7 @@ function Answers() {
     <AppShell screen="05" ground={stopFirst ? 'plain' : 'dots'} header={{ back: '/check/shelf', title: t.runningHead }}>
       <div className={styles.intro}>
         <div className={styles.introText}>
-          <h1 className={styles.title}>{reviewSummary(s.shelf)}</h1>
+          <h1 className={styles.title} aria-live="polite" data-testid="review-summary">{reviewSummary(s.shelf)}</h1>
           {rows.length > 0 ? <p className={styles.lead}>{REVIEW_COPY.lead}</p> : null}
         </div>
         <DrMehr pose="clipboard" size={74} alt="Dr. Mehr with a clipboard" />
@@ -76,7 +76,7 @@ function Answers() {
                   <p className={styles.text} data-testid="culprits">
                     {REVIEW_COPY.culprits}{' '}
                     {rv.culprits.map((c, n) => (
-                      <span key={c.ingredient}>{n > 0 ? ', ' : ''}<b>{c.ingredient}</b></span>
+                      <span key={`${c.ingredient}-${n}`}>{n > 0 ? ', ' : ''}<b>{c.ingredient}</b></span>
                     ))}
                   </p>
                 ) : null}
