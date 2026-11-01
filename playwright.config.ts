@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',
+    // PW_CHANNEL=chrome runs the suite on the installed Chrome when Playwright's own browser isn't downloaded.
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
   },
   // Phone widths first: 360 (low-end Android), 390 (design width), plus the 480 px column edge.
   projects: [
