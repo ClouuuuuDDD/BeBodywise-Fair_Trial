@@ -681,6 +681,10 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await card.getByTestId('clean-row').nth(1).getByTestId('chip-pause').click();
     await expect(card.getByTestId('clean-row').nth(1)).toContainText('Paused until');
     await expect(gotIt).not.toHaveAttribute('aria-disabled', 'true');
+    const morning = page.getByRole('region', { name: 'Morning' });
+    await expect(morning).not.toContainText('Your usual deodorant.');
+    await expect(morning).toContainText('Fresh Bloom Deo Spray: paused');
+    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('You chose to keep using it.');
     const choices = async () => (((await savedPlan(page))?.shelf ?? []) as { product: string; trialChoice?: string }[]).map((i) => [i.product, i.trialChoice]);
     await expect.poll(choices).toEqual([
       ['Glow 7% Glycolic Toner', 'keep'],

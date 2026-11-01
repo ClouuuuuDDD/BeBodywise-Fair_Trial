@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ShelfItem } from '../../contracts';
+import { needsTrialChoice } from '../../engine';
 import { ensureStartPlan } from '../../state/trial';
 import { track } from '../../state/vault';
 import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, TextLink } from '../../ui';
 import { MASCOTS, type MascotId } from '../../ui';
-import { CleanTrialCard, allChosen } from './components/CleanTrialCard';
+import { CleanTrialCard, allChosen, pausedUntil } from './components/CleanTrialCard';
 import { lowerFirst } from './components/format';
 import { useTrialScreen } from './components/useTrialScreen';
 import styles from './components/trial.module.css';
@@ -52,7 +53,18 @@ export default function Routine() {
   const itemOf = (ref: string) => plan.shelf.find((i) => i.id === ref);
   const rollon: MascotId = sp.productId === 'bw-rollon-6' ? 'rollon-strong' : sp.productId.startsWith('bw-kit') ? 'cream-jar' : 'rollon-sleepy';
   const morningSteps = sp.morning.filter((m) => m.ref !== 'none');
-  const first = morningSteps[0];
+  const isPaused = (ref: string) => itemOf(ref)?.trialChoice === 'pause';
+  const live = morningSteps.filter((m) => !isPaused(m.ref));
+  const first = live[0];
+  const until = pausedUntil(s.trial?.judgeByDate);
+  const apartText = (ref: string, product: string, reason: string) => {
+    const it = itemOf(ref);
+    if (it && needsTrialChoice(it)) {
+      if (it.trialChoice === 'pause') return `${product}: ${until}`;
+      if (it.trialChoice === 'keep') return `${product}: You chose to keep using it. Your verdict will say so.`;
+    }
+    return `${product}: ${lowerFirst(reason)}`;
+  };
   const shareUrl = `${window.location.origin}/`;
   const shareText = `My roll-on routine from Fair Trial: ${shareUrl}`;
 
@@ -100,7 +112,11 @@ export default function Routine() {
           ) : (
             morningSteps.map((m) => (
               <p key={m.ref} className={styles.stageBody}>
-                {isDeodorant(itemOf(m.ref)) ? 'Your usual deodorant.' : `${m.product}: ${lowerFirst(m.instruction)}`}
+                {isPaused(m.ref)
+                  ? `${m.product}: ${until.charAt(0).toLowerCase()}${until.slice(1)}`
+                  : isDeodorant(itemOf(m.ref))
+                    ? 'Your usual deodorant.'
+                    : `${m.product}: ${lowerFirst(m.instruction)}`}
               </p>
             ))
           )}
@@ -116,7 +132,7 @@ export default function Routine() {
           <div>
             <h2 className={`${styles.stageTitle} ${styles.apartTitle}`}>Keep apart</h2>
             <p className={styles.stageBody}>
-              {k.product}: {lowerFirst(k.reason)}
+              {apartText(k.ref, k.product, k.reason)}
             </p>
           </div>
         </section>

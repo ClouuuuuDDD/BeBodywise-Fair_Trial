@@ -11,13 +11,16 @@ export function allChosen(shelf: ShelfItem[]): boolean {
   return shelf.filter(needsTrialChoice).every((i) => i.trialChoice !== undefined);
 }
 
+/** "Paused until 12 Mar." or the no-clock wording; shared by the card and the routine. */
+export const pausedUntil = (judgeBy?: ISODate) => (judgeBy ? `Paused until ${formatDayMonth(judgeBy)}.` : 'Paused until your judge-by date.');
+
 /** Spec 3.7: what to pause during the trial, her choice per product, and anything not checked yet. */
 export function CleanTrialCard({ plan, judgeBy }: { plan: Plan; judgeBy?: ISODate }) {
   const flagged = plan.shelf.filter(needsTrialChoice);
   const unchecked = openVariables(plan.shelf, plan.trialProduct).filter((v) => v.why === 'unchecked');
   const [busy, setBusy] = useState<string | undefined>();
   if (flagged.length === 0 && unchecked.length === 0) return null;
-  const until = judgeBy ? `Paused until ${formatDayMonth(judgeBy)}.` : 'Paused until your judge-by date.';
+  const until = pausedUntil(judgeBy);
 
   return (
     <section className={styles.clean} aria-label="Your clean trial" data-testid="clean-trial">
@@ -30,7 +33,7 @@ export function CleanTrialCard({ plan, judgeBy }: { plan: Plan; judgeBy?: ISODat
               <b>{i.product}</b> · {ACTION_LABEL[i.review!.action!]}
             </p>
             {i.review?.actionWhy ? <p className={styles.cleanWhy}>{i.review.actionWhy}</p> : null}
-            <div className={styles.cleanChoices} role="radiogroup" aria-label={`${i.product}: pause or keep`}>
+            <div className={styles.cleanChoices} role="group" aria-label={`${i.product}: pause or keep`}>
               <CheckChip value="pause" label="I'll pause it" checked={i.trialChoice === 'pause'} onChange={() => setTrialChoice(i.id, 'pause')} />
               <CheckChip value="keep" label="I'll keep using it" checked={i.trialChoice === 'keep'} onChange={() => setTrialChoice(i.id, 'keep')} />
             </div>
@@ -47,8 +50,11 @@ export function CleanTrialCard({ plan, judgeBy }: { plan: Plan; judgeBy?: ISODat
               onClick={async () => {
                 if (busy) return;
                 setBusy(v.id);
-                await retryPlanReview(v.id);
-                setBusy(undefined);
+                try {
+                  await retryPlanReview(v.id);
+                } finally {
+                  setBusy(undefined);
+                }
               }}
               data-testid="retry-review"
             >
