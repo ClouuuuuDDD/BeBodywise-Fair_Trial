@@ -23,7 +23,7 @@ import type {
   Verdict,
 } from '../contracts';
 import { DEFAULT_ANCHOR_PRODUCT, KILL_TEST_PASSED } from '../engine/config';
-import { startPlan, trialClock, verdict as runVerdict } from '../engine';
+import { openVariables, startPlan, trialClock, verdict as runVerdict } from '../engine';
 import { computeChange, noiseBandFromBursts } from '../photo/measure';
 import { getExample, updateExample, useExample } from './example';
 import { tourToday, useTour } from './tour';
@@ -374,6 +374,7 @@ export function computeVerdict(plan: Plan, photos: PhotoCapture[], today: ISODat
     hormonePattern: plan.fitResult.hormoneNote,
     killTestPassed: KILL_TEST_PASSED,
     today,
+    openVariables: openVariables(plan.shelf, product),
   });
 }
 

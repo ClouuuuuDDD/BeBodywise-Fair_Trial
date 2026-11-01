@@ -9,6 +9,7 @@ import type {
 } from '../contracts';
 import { KEEP_GOING_CHECK_WEEKS, RECHECK_DAYS, STEP_UP_TARGET, SUPPORTING_ONLY_NOTE } from './config';
 import { addDays, formatDayMonth } from './dates';
+import { joinNames } from './openVariables';
 import { shade } from './shade';
 
 const NEXT_WORKING = `Keep going. Check again in ${KEEP_GOING_CHECK_WEEKS} weeks.`;
@@ -150,8 +151,20 @@ function recheck(input: VerdictInput, rule: VerdictRuleId, reasons: string[], ex
  * is shown as supporting only. A skipped blind pick leaves one read only, so it is Not yet (V8 or K), except a
  * darker-beyond-band measurement (V6) which still says See a doctor when the kill test has passed.
  * Step-up (X1-03): a Not for you with a calm trial (V3, V7 and K alike) carries stepUp; Not yet and Working never do. Placeholder rules, to be signed by a dermatologist.
+ * Open variables add one reason line; the outcome never changes.
  */
 export function verdict(input: VerdictInput): Verdict {
+  const v = baseVerdict(input);
+  const names = (input.openVariables ?? []).map((o) => o.name);
+  return names.length === 0 ? v : { ...v, reasons: [...v.reasons, openVariableLine(names)] };
+}
+
+/** Spec 3.8: one extra reason, the outcome logic is unchanged. */
+export function openVariableLine(names: string[]): string {
+  return `You also kept using ${joinNames(names)}, so we can't be sure which one made the difference.`;
+}
+
+function baseVerdict(input: VerdictInput): Verdict {
   const { trial, reactions, change, blindPick } = input;
   const use = daysLine(input);
 

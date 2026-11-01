@@ -249,3 +249,15 @@ describe('verdict: reasons and use-days wording', () => {
     for (const v of all) expect(`${v.reasons.join(' ')} ${v.nextStep}`).not.toMatch(/buy|cart|discount|Rs \d/i);
   });
 });
+
+describe('open variables line (spec 3.8)', () => {
+  it('adds one reason naming what she kept, and changes nothing else', () => {
+    const input = verdictInput(); // V5 Working, three reasons
+    const plain = verdict(input);
+    const withOpen = verdict({ ...input, openVariables: [{ name: 'Glow 7% Glycolic Toner' }, { name: 'Fresh Bloom Deo Spray' }] });
+    expect(withOpen.outcome).toBe(plain.outcome);
+    expect(withOpen.rule).toBe(plain.rule);
+    expect(withOpen.reasons).toEqual([...plain.reasons, "You also kept using Glow 7% Glycolic Toner and Fresh Bloom Deo Spray, so we can't be sure which one made the difference."]);
+    expect(verdict({ ...input, openVariables: [] }).reasons).toEqual(plain.reasons);
+  });
+});
