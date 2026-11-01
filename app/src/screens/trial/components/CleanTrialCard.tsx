@@ -20,6 +20,9 @@ export function needsCleanSheet(plan: Plan): boolean {
   return !allChosen(plan.shelf) || openVariables(plan.shelf, plan.trialProduct).some((v) => v.why === 'unchecked');
 }
 
+/** Short name of the trial product for the lead line: the roll-on, the kit or the cream. */
+const trialWord = (id: Plan['trialProduct']) => (id?.startsWith('bw-kit') ? 'the kit' : id === 'bw-repair-cream' ? 'the cream' : 'the roll-on');
+
 export function CleanTrialCard({ plan, judgeBy, bare }: { plan: Plan; judgeBy?: ISODate; bare?: boolean }) {
   const flagged = plan.shelf.filter(needsTrialChoice);
   const unchecked = openVariables(plan.shelf, plan.trialProduct).filter((v) => v.why === 'unchecked');
@@ -30,7 +33,7 @@ export function CleanTrialCard({ plan, judgeBy, bare }: { plan: Plan; judgeBy?: 
   return (
     <section className={bare ? styles.cleanBare : styles.clean} aria-label="Your clean trial" data-testid="clean-trial">
       {bare ? null : <h2 className={styles.stageTitle}>Your clean trial</h2>}
-      <p className={styles.stageBody}>Pausing these makes it clear whether the roll-on is what changed. Your call.</p>
+      <p className={styles.stageBody}>Pausing these makes it clear whether {trialWord(plan.trialProduct)} is what changed. Your call.</p>
       <ul className={bare ? styles.cleanListBare : styles.cleanList}>
         {flagged.map((i) => (
           <li key={i.id} className={styles.cleanRow} data-testid="clean-row">
