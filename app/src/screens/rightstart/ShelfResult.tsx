@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { track } from '../../state';
-import { firstTime, shelfAnswersFor, useRightStart } from '../../state/rightStart';
+import { firstTime, retryShelfReview, shelfAnswersFor, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, DrMehr, Mascot, PlaceholderRulesNote, PrimaryButton, TextLink } from '../../ui';
 import { FitGuard } from './components/FitGuard';
 import { DOCTOR_URL } from './components/links';
-import { answerLine, summaryLine } from './components/answerCopy';
+import { ACTION_LABEL, REVIEW_COPY, orderForReview, reviewSummary } from './components/reviewCopy';
+import { AI_REVIEW_LABEL } from '../../engine/config';
 import { mascotForItem, worriedFor } from './components/mascotFor';
 import { answers as t, match } from './copy';
 import styles from './ShelfResult.module.css';
@@ -37,42 +38,70 @@ function Answers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
-  const summary = summaryLine(answers);
-  const stopFirst = answers.some((a) => a.answer === 'stop-ask');
+  const stopFirst = s.shelf.some((i) => i.review?.action === 'ask-doctor');
+  const rows = orderForReview(s.shelf);
+  const [busy, setBusy] = useState<string | undefined>();
+  async function retry(id: string) {
+    if (busy) return;
+    setBusy(id);
+    await retryShelfReview(id);
+    setBusy(undefined);
+  }
 
   return (
     <AppShell screen="05" ground={stopFirst ? 'plain' : 'dots'} header={{ back: '/check/shelf', title: t.runningHead }}>
       <div className={styles.intro}>
         <div className={styles.introText}>
-          <h1 className={styles.title}>{summary}</h1>
-          {answers.length > 0 ? <p className={styles.lead}>{t.lead}</p> : null}
+          <h1 className={styles.title}>{reviewSummary(s.shelf)}</h1>
+          {rows.length > 0 ? <p className={styles.lead}>{REVIEW_COPY.lead}</p> : null}
         </div>
         <DrMehr pose="clipboard" size={74} alt="Dr. Mehr with a clipboard" />
       </div>
       <ul className={styles.rows}>
-        {answers.map((a) => {
-          const item = s.shelf.find((i) => i.id === a.itemId);
-          if (!item) return null;
-          const worried = a.answer === 'pick-one' || a.answer === 'stop-ask';
+        {rows.map((item) => {
+          const rv = item.review;
+          const ok = rv?.status === 'ok' && rv.action !== undefined;
+          const action = ok ? rv.action! : undefined;
+          const worried = action === 'stop-on-skin' || action === 'ask-doctor';
           const base = mascotForItem(item);
           return (
-            <li key={a.itemId} className={styles.row} data-testid="answer-row" data-answer={a.answer}>
+            <li key={item.id} className={styles.row} data-testid="review-row" data-action={action ?? 'unchecked'}>
               <Mascot id={worried ? worriedFor(base) : base} size={52} alt="" />
               <div>
-                <span className={styles.pill} data-answer={a.answer}>
-                  {t.label[a.answer]}
+                <span className={styles.pill} data-action={action ?? 'unchecked'}>
+                  {action ? ACTION_LABEL[action] : REVIEW_COPY.unchecked}
                 </span>
                 <span className={styles.name}>{item.product}</span>
-                <p className={styles.text}>
-                  {answerLine(a, item).map((p, i) => (p.strong ? <b key={i}>{p.text}</b> : <span key={i}>{p.text}</span>))}
-                </p>
+                {ok && rv.culprits.length > 0 ? (
+                  <p className={styles.text} data-testid="culprits">
+                    {REVIEW_COPY.culprits}{' '}
+                    {rv.culprits.map((c, n) => (
+                      <span key={c.ingredient}>{n > 0 ? ', ' : ''}<b>{c.ingredient}</b></span>
+                    ))}
+                  </p>
+                ) : null}
+                {ok && rv.actionWhy ? <p className={styles.text}>{rv.actionWhy}</p> : null}
+                {ok && rv.mayWorsenDarkness ? (
+                  <p className={styles.flag} data-testid="darkness-flag">
+                    <b>{REVIEW_COPY.darkness}.</b> {rv.darknessWhy ?? ''}
+                  </p>
+                ) : null}
+                {ok && rv.confidence === 'low' ? <p className={styles.unsure}>{REVIEW_COPY.lowConfidence}</p> : null}
+                {!ok ? (
+                  <p className={styles.text}>
+                    {REVIEW_COPY.failed}{' '}
+                    <TextLink onClick={() => void retry(item.id)} data-testid="retry-review">
+                      {REVIEW_COPY.retry}
+                    </TextLink>
+                  </p>
+                ) : null}
               </div>
             </li>
           );
         })}
       </ul>
       <div className={styles.note}>
-        <PlaceholderRulesNote />
+        <PlaceholderRulesNote text={AI_REVIEW_LABEL} />
       </div>
       <BottomBar sticky>
         <PrimaryButton to="/check/match">{t.primary}</PrimaryButton>

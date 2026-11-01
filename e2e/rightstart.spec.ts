@@ -533,38 +533,39 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
 /* ------------------------------------------------------------------ 05, 05b, 06: Riya */
 
 test.describe("Riya's worked example, 05, 05b and 06", () => {
-  test('AC-04-2, AC-05-1..3, AC-05-6: four rows in order, each naming its product and ingredient', async ({ page }) => {
+  test('spec 3.5: one row per product with its action, culprit, reason and the darkness flag; a failed check offers Retry', async ({ page }) => {
     const mock = await setup(page);
     await riyaShelf(page, mock);
     const rows = page.getByTestId('shelf-row');
-    await expect(rows.nth(0)).toContainText('Glow 7% Glycolic Toner');
-    await expect(rows.nth(0)).toContainText('Glycolic acid');
     await expect(rows.nth(0)).toContainText('Underarms · Night');
     await expect(rows.nth(1)).toContainText('Underarms · Morning · stung once');
-    await expect(rows).toHaveCount(3);
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/shelf\/answer$/);
-    await expect(page.getByTestId('running-head')).toHaveText('Right Start · Your shelf');
-    await expect(page.getByRole('heading', { name: 'One swap, two habits.' })).toBeVisible();
-    const answer = page.getByTestId('answer-row');
-    await expect(answer).toHaveCount(4);
-    const expected: Array<[string, string, string]> = [
-      ['Pick one here', 'Glow 7% Glycolic Toner', 'glycolic'],
-      ['Different times', 'Fresh Bloom Deo Spray', 'alcohol'],
-      ['Leave a gap', 'Silk Hair Removal Cream', 'Thioglycolate'],
-      ['Fine together', '10% Niacinamide Body Lotion', 'Niacinamide'],
-    ];
-    for (const [i, [label, product, ingredient]] of expected.entries()) {
-      await expect(answer.nth(i)).toContainText(label);
-      await expect(answer.nth(i)).toContainText(product);
-      await expect(answer.nth(i).locator('b').first()).toContainText(ingredient);
-    }
-    await expect(answer.nth(1)).not.toContainText(/\d+\s*hours?/i); // AC-05-3
-    await expect(page.getByTestId('placeholder-rules')).toHaveText('Placeholder rules, to be signed by a dermatologist.');
-    await expect(page.getByTestId('primary')).toHaveText('See your best Be Bodywise match');
+    await expect(page.getByRole('heading', { name: '3 products need a change for your trial.' })).toBeVisible();
+    const review = page.getByTestId('review-row');
+    await expect(review).toHaveCount(3);
+    await expect(review.nth(0)).toHaveAttribute('data-action', 'pause-during-trial');
+    await expect(review.nth(0)).toContainText('Glow 7% Glycolic Toner');
+    await expect(review.nth(0).getByTestId('culprits')).toContainText('Glycolic Acid');
+    await expect(review.nth(0).getByTestId('darkness-flag')).toContainText('May be adding to your darkness');
+    await expect(review.nth(2)).toHaveAttribute('data-action', 'different-time');
+    await expect(page.getByTestId('placeholder-rules')).toHaveText('Checked by AI against a draft dermatologist brief. Not medical advice.');
     await expect.poll(async () => (await eventsNamed(page, 'shelf_checked')).length).toBe(1);
-    const [checked] = await eventsNamed(page, 'shelf_checked');
-    expect(checked).toMatchObject({ item_count: 4, n_fine: 1, n_split_time: 1, n_pick_one: 1, n_wait: 1, n_stop_ask: 0 });
+  });
+
+  test('spec 3.5 and D6: a product whose check failed is never shown as Keep, and Retry fixes it', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await page.getByTestId('primary').click();
+    const row = page.getByTestId('review-row');
+    await expect(row).toHaveAttribute('data-action', 'unchecked');
+    await expect(row).toContainText("We couldn't check this one.");
+    await expect(page.getByRole('heading', { name: "One product isn't checked yet." })).toBeVisible();
+    mock.reviewStatus = 200;
+    await page.getByTestId('retry-review').click();
+    await expect(row).toHaveAttribute('data-action', 'keep');
   });
 
   test('AC-05b-1..3: 4% No Fragrance, cost strip, list price, four other products', async ({ page }) => {
@@ -638,14 +639,13 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(page.getByRole('heading', { name: 'Your plan from 14 October is ready.' })).toBeVisible();
     await expect(page.getByTestId('running-head')).toHaveText('Right Start · Day 0');
     const cast = page.getByTestId('cast-card');
-    await expect(cast).toHaveCount(5);
+    await expect(cast).toHaveCount(4); // underarm-only shelf: the lotion is gone
     await expect(cast.nth(0)).toContainText('Roll-on');
     await expect(cast.nth(0)).toContainText('New arrival');
     await expect(cast.nth(1)).toContainText('Toner');
-    await expect(cast.nth(1)).toContainText('Face only');
+    await expect(cast.nth(1)).toContainText('Pick one here'); // toner is now underarms, so it overlaps the roll-on
     await expect(cast.nth(2)).toContainText('Mornings only');
     await expect(cast.nth(3)).toContainText('2 days apart');
-    await expect(cast.nth(4)).toContainText('Fine together');
     await expect(page.getByText('Next, about 5 minutes')).toBeVisible();
     await expect(page.getByTestId('primary')).toHaveText('Start my plan');
     await page.getByTestId('primary').click();
@@ -673,10 +673,10 @@ test.describe('05 and 05b variants', () => {
     const mock = await setup(page);
     await fitCheck(page, RIYA);
     await addCatalogProduct(page, mock, 'bw-niacinamide-lotion', { time: 'morning' });
-    await addTypedProduct(page, mock, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { time: 'night' });
+    await addTypedProduct(page, mock, 'Derma steroid cream', 'Aqua, Mometasone Furoate, Glycerin, Cetyl Alcohol, Paraffin', { time: 'night' }, { ...REVIEWS.default, productType: 'other', culprits: [{ ingredient: 'Mometasone Furoate', concern: 'steroid', why: 'A prescription steroid.' }], action: 'ask-doctor', actionWhy: "Mometasone Furoate needs a doctor's eye." });
     await page.getByTestId('primary').click();
-    const rows = page.getByTestId('answer-row');
-    await expect(rows.nth(0)).toContainText('Stop and ask a doctor');
+    const rows = page.getByTestId('review-row');
+    await expect(rows.nth(0)).toContainText('Ask a doctor');
     await expect(rows.nth(0)).toContainText('Derma steroid cream');
     await expect(page.getByTestId('doctor-link')).toHaveText('Talk to the Bodywise in-app doctor');
     await page.getByTestId('primary').click();

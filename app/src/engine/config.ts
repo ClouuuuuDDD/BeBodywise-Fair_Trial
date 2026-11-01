@@ -64,6 +64,7 @@ export const GREEN_WINDOW_DAYS = 14;
 export const RECHECK_DAYS = 28;
 /** Exact placeholder label on every rule screen and the skin-file PDF (decisions X1-05). */
 export const PLACEHOLDER_RULES_LABEL = 'Placeholder rules, to be signed by a dermatologist.';
+export const AI_REVIEW_LABEL = 'Checked by AI against a draft dermatologist brief. Not medical advice.';
 /** Week at which "calm but slow" can step up 4% -> 6% (H-08; rule in FR-M10-05). Placeholder, to be set by a dermatologist. */
 export const STEP_UP_WEEK = 8;
 /** Keep Going: periodic re-check every this many weeks with the same photo guide. Placeholder, to be set by a dermatologist. */
