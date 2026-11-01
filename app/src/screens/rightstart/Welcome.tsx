@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import type { Channel } from '../../contracts';
-import { AppShell, BottomBar, CornerRibbon, DrMehr, Mascot, PrimaryButton, ResultCard, Sparkle, TextLink } from '../../ui';
-import { firstTime, setChannel, useRightStart } from '../../state/rightStart';
+import type { BodywiseProductId, Channel } from '../../contracts';
+import { AppShell, BottomBar, DrMehr, PrimaryButton, Sparkle, TextLink } from '../../ui';
+import { catalog, productPrice } from '../../engine';
+import { firstTime, selectProduct, setChannel, useRightStart } from '../../state/rightStart';
 import { track } from '../../state';
 import { startTour, useTour } from '../../state/tour';
+import { ProductArt } from './components/ProductArt';
+import { RANGE_NAMES } from './components/rangeNames';
+import { parseSelectedProduct } from './components/selectedProduct';
 import { welcome } from './copy';
 import styles from './Welcome.module.css';
 
@@ -20,6 +24,11 @@ export default function Welcome() {
   const tour = useTour();
   const [params] = useSearchParams();
   const src = channelFrom(params.get('src'));
+  const productParam = params.get('product');
+
+  useEffect(() => {
+    if (productParam !== null) selectProduct(parseSelectedProduct(productParam));
+  }, [productParam]);
 
   useEffect(() => {
     if (!src || !firstTime(`door:${src}`)) return;
@@ -36,23 +45,33 @@ export default function Welcome() {
   if (src === 'box-qr') return <Navigate to="/start?src=box-qr" replace />;
 
   const channel = src ?? s.channel;
+  const selected: BodywiseProductId = productParam !== null ? parseSelectedProduct(productParam) : s.selectedProductId ?? parseSelectedProduct(null);
+  const name = catalog.products.find((p) => p.id === selected)?.name ?? RANGE_NAMES[selected];
 
   return (
     <AppShell screen="02" header={{ brand: 'Fair Trial', concept: true }}>
       <DrMehr pose="wave" size={214} alt="Dr. Mehr waving hello" loading="eager" className={styles.doctor} />
       <div className={styles.intro}>
-        <h1 className={styles.title}>{welcome.title}</h1>
-        <p className={styles.lead}>{welcome.lead}</p>
+        <h1 className={styles.title}>
+          {welcome.picked} <b>{`${name} (Rs ${productPrice(selected)})`}</b>.
+        </h1>
+        <p className={styles.lead}>{welcome.range(catalog.products.length)}</p>
       </div>
-      <ResultCard ribbon={<CornerRibbon>1</CornerRibbon>} className={styles.cast} padding="none">
-        <Mascot id="rollon" size={112} alt="Roll-on character" loading="eager" />
-        <div className={styles.plates}>
-          <span className={styles.plate}>{welcome.cardPlate}</span>
-          <span className={`${styles.chip} ${styles.mint}`}>{welcome.cardChip1}</span>
-          <span className={`${styles.chip} ${styles.butter}`}>{welcome.cardChip2}</span>
-        </div>
-        <Sparkle size={22} className={styles.spark} />
-      </ResultCard>
+      <ul className={styles.range} data-testid="pick-range" aria-label={welcome.rangeLabel} data-scroll-x tabIndex={0}>
+        {catalog.products.map((p) => {
+          const id = p.id as BodywiseProductId;
+          const mine = id === selected;
+          return (
+            <li key={id} className={styles.rangeItem} aria-current={mine || undefined} data-selected={mine || undefined}>
+              <ProductArt id={id} size={52} />
+              <span className={styles.rangeName}>{RANGE_NAMES[id]}</span>
+              <span className={styles.rangePrice}>{`Rs ${productPrice(id)}`}</span>
+              <span className={styles.rangeFor}>{p.for}</span>
+              {mine ? <span className={styles.rangeMine}>{welcome.yourPick}</span> : null}
+            </li>
+          );
+        })}
+      </ul>
       <ul className={styles.facts}>
         <li>
           <FactIcon d="clock" />

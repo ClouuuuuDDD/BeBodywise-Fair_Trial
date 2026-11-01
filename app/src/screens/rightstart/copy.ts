@@ -13,15 +13,14 @@ export const door = {
 } as const;
 
 export const welcome = {
-  title: 'Is this roll-on right for you?',
-  lead: "I'm Dr. Mehr. Five quick questions and you'll know.",
-  cardPlate: 'Roll-on',
-  cardChip1: 'New arrival',
-  cardChip2: 'Works the night shift',
+  picked: "You've picked the",
+  range: (n: number) => `Bodywise has ${n} products for underarm darkness. Take 2 minutes to see which fits you best.`,
+  rangeLabel: 'The Be Bodywise underarm range',
+  yourPick: 'Your pick',
   fact1: '2 minutes',
   fact2: 'No login',
   fact3: 'Skin photos stay on your phone',
-  primary: "Check if it's right for me",
+  primary: 'Check my fit',
   secondary: 'See an example trial',
   demo: 'Try the whole journey yourself (guided demo)',
 } as const;

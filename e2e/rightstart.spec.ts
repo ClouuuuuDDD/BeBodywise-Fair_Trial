@@ -215,17 +215,21 @@ test.describe('01 Product page door and 02 Welcome', () => {
     await expect(page.getByText('Concept for Be Bodywise')).toBeVisible();
     // AC-01-2: the card leads to the welcome with the door stored on the session.
     await page.getByTestId('door-card').click();
-    await expect(page).toHaveURL(/\/\?src=bodywise-product-page$/);
+    await expect(page).toHaveURL(/\/\?src=bodywise-product-page&product=bw-rollon-4$/);
     await expect.poll(async () => (await eventsNamed(page, 'door_opened')).map((e) => e.channel)).toEqual(['bodywise-product-page']);
   });
 
   test('AC-02-1..3: welcome facts, one primary, the example link', async ({ page }) => {
     await setup(page);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Is this roll-on right for you?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /You've picked the 4% AHA BHA Underarm Roll On \(Rs 329\)/ })).toBeVisible();
+    await expect(page.getByText('Bodywise has 5 products for underarm darkness. Take 2 minutes to see which fits you best.')).toBeVisible();
+    const range = page.getByTestId('pick-range').getByRole('listitem');
+    await expect(range).toHaveCount(5);
+    await expect(page.getByTestId('pick-range').locator('[aria-current="true"]')).toContainText('4% AHA BHA Underarm Roll On');
     for (const fact of ['2 minutes', 'No login', 'Skin photos stay on your phone']) await expect(page.getByText(fact, { exact: true })).toBeVisible();
     await expect(page.getByTestId('primary')).toHaveCount(1);
-    await expect(page.getByTestId('primary')).toHaveText("Check if it's right for me");
+    await expect(page.getByTestId('primary')).toHaveText('Check my fit');
     await expect(page.getByText('Concept for Be Bodywise')).toBeVisible();
     await page.getByTestId('primary').click();
     await expect(page).toHaveURL(/\/check\/1$/);
@@ -234,6 +238,17 @@ test.describe('01 Product page door and 02 Welcome', () => {
     await page.goto('/');
     await page.getByText('See an example trial').click();
     await expect(page).toHaveURL(/\/example$/);
+  });
+
+  test('spec 3.1: ?product= highlights her pick, unknown ids fall back to the 4% roll-on, the pick is remembered', async ({ page }) => {
+    await setup(page);
+    await page.goto('/?product=bw-kit-6');
+    await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit \(Rs 859\)/ })).toBeVisible();
+    await expect(page.getByTestId('pick-range').locator('[aria-current="true"]')).toContainText('Advanced Underarm Pigmentation Kit');
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Advanced Underarm Pigmentation Kit/ })).toBeVisible(); // remembered
+    await page.goto('/?product=not-a-product');
+    await expect(page.getByRole('heading', { name: /4% AHA BHA Underarm Roll On \(Rs 329\)/ })).toBeVisible();
   });
 
   test('AC-02-4 and FR-M1-04: a saved plan routes on; box QR with no plan shows the fallback', async ({ page }) => {
