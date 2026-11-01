@@ -144,7 +144,12 @@ await step('buy-demo-to-ch2', async () => { await page.getByText('Buy on Be Body
 await closeCard();
 await step('plan-ready', async () => { await tid('primary').waitFor(); return await tid('primary').innerText(); });
 await step('routine', async () => { await tid('primary').click(); await page.waitForURL(/start\/routine/); });
-await step('photo-underarm', async () => { await tid('primary').click(); await page.waitForURL(/start\/photo/); });
+await step('photo-underarm', async () => {
+  await tid('primary').click();
+  const cont = page.getByRole('dialog').getByRole('button', { name: 'Continue' });
+  if (await cont.isVisible({ timeout: 1500 }).catch(() => false)) await cont.click();
+  await page.waitForURL(/start\/photo/);
+});
 await step('photo-uploaded-both', async () => {
   await upload(UNDERARM_DARK); await page.waitForURL(/site=inner-arm/, { timeout: 20000 });
   await upload(INNER_ARM); await page.waitForURL(/photo\/check/, { timeout: 20000 });

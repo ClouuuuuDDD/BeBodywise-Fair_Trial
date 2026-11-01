@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { ShelfItem } from '../../contracts';
 import { needsTrialChoice } from '../../engine';
 import { ensureStartPlan } from '../../state/trial';
 import { track } from '../../state/vault';
-import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, TextLink } from '../../ui';
+import { AppShell, BottomBar, Mascot, PlaceholderRulesNote, PrimaryButton, Sheet, TextLink } from '../../ui';
 import { MASCOTS, type MascotId } from '../../ui';
-import { CleanTrialCard, allChosen, pausedUntil } from './components/CleanTrialCard';
+import { CleanTrialCard, allChosen, needsCleanSheet, pausedUntil } from './components/CleanTrialCard';
 import { lowerFirst } from './components/format';
 import { useTrialScreen } from './components/useTrialScreen';
 import styles from './components/trial.module.css';
@@ -39,6 +39,7 @@ export default function Routine() {
   const s = useTrialScreen();
   const { search } = useLocation();
   const navigate = useNavigate();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const fromHome = new URLSearchParams(search).get('from') === 'home';
   const plan = s.plan;
   useEffect(() => {
@@ -64,6 +65,11 @@ export default function Routine() {
       if (it.trialChoice === 'keep') return `${product}: You chose to keep using it. Your verdict will say so.`;
     }
     return `${product}: ${lowerFirst(reason)}`;
+  };
+  const proceed = () => {
+    track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length });
+    setSheetOpen(false);
+    void navigate(fromHome ? '/trial' : '/start/photo?site=underarm');
   };
   const shareUrl = `${window.location.origin}/`;
   const shareText = `My roll-on routine from Fair Trial: ${shareUrl}`;
@@ -138,8 +144,6 @@ export default function Routine() {
         </section>
       ))}
 
-      <CleanTrialCard plan={plan} judgeBy={s.trial?.judgeByDate} />
-
       <ol data-scroll-x tabIndex={0} aria-label="Three habits" className={styles.rules}>
         {sp.rules.map((r, i) => (
           <li key={i}>
@@ -152,16 +156,7 @@ export default function Routine() {
       <PlaceholderRulesNote />
 
       <BottomBar>
-        <PrimaryButton
-          disabled={!allChosen(plan.shelf)}
-          onClick={() => {
-            if (!allChosen(plan.shelf)) return;
-            track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length });
-            void navigate(fromHome ? '/trial' : '/start/photo?site=underarm');
-          }}
-        >
-          Got it
-        </PrimaryButton>
+        <PrimaryButton onClick={() => (needsCleanSheet(plan) ? setSheetOpen(true) : proceed())}>Got it</PrimaryButton>
         <TextLink href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} external onClick={(e) => void share(e)} data-testid="share-routine">
           <span className={styles.inlineIcon}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -171,6 +166,25 @@ export default function Routine() {
           </span>
         </TextLink>
       </BottomBar>
+
+      <Sheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Your clean trial"
+        footer={
+          <PrimaryButton
+            disabled={!allChosen(plan.shelf)}
+            onClick={() => {
+              if (!allChosen(plan.shelf)) return;
+              proceed();
+            }}
+          >
+            Continue
+          </PrimaryButton>
+        }
+      >
+        <CleanTrialCard plan={plan} judgeBy={s.trial?.judgeByDate} bare />
+      </Sheet>
     </AppShell>
   );
 }

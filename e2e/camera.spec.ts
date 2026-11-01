@@ -52,6 +52,8 @@ test('skin camera: live preview after "Take photo", then a capture is measured',
   await tid('primary').click();
   await page.waitForURL(/routine/);
   await tid('primary').click();
+  const cont = page.getByRole('dialog').getByRole('button', { name: 'Continue' });
+  if (await cont.isVisible({ timeout: 1500 }).catch(() => false)) await cont.click();
   await page.waitForURL(/start\/photo/);
 
   await tid('primary').click(); // starts the camera
@@ -113,6 +115,8 @@ test('upload fallback: "Upload a photo" opens a picker that allows the gallery, 
   await tid('primary').click();
   await page.waitForURL(/routine/);
   await tid('primary').click();
+  const cont = page.getByRole('dialog').getByRole('button', { name: 'Continue' });
+  if (await cont.isVisible({ timeout: 1500 }).catch(() => false)) await cont.click();
   await page.waitForURL(/start\/photo/);
   const [skin] = await Promise.all([page.waitForEvent('filechooser'), tid('upload-photo').click()]);
   expect(await skin.element().evaluate((e) => e.hasAttribute('capture'))).toBe(false);

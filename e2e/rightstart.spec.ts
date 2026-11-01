@@ -664,7 +664,7 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(page).toHaveURL(/\/check\/1$/);
   });
 
-  test('spec 3.7: the clean-trial card asks pause or keep for each flagged product before Got it', async ({ page }) => {
+  test('spec 3.7: the clean-trial sheet asks pause or keep for each flagged product before Continue', async ({ page }) => {
     const mock = await setup(page);
     await riyaShelf(page, mock);
     await page.getByTestId('primary').click();
@@ -672,26 +672,31 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await page.getByTestId('save-plan').click();
     await page.getByTestId('primary').click(); // Start my plan
     await expect(page).toHaveURL(/\/start\/routine$/);
-    const card = page.getByTestId('clean-trial');
+    await page.getByTestId('primary').click(); // Got it opens the clean-trial sheet
+    const sheet = page.getByRole('dialog');
+    const card = sheet.getByTestId('clean-trial');
     await expect(card.getByTestId('clean-row')).toHaveCount(2); // toner and spray say pause; the cream says different time
-    const gotIt = page.getByTestId('primary');
-    await expect(gotIt).toHaveAttribute('aria-disabled', 'true');
+    const cont = sheet.getByRole('button', { name: 'Continue' });
+    await expect(cont).toHaveAttribute('aria-disabled', 'true');
     await card.getByTestId('clean-row').nth(0).getByTestId('chip-keep').click();
-    await expect(gotIt).toHaveAttribute('aria-disabled', 'true');
+    await expect(cont).toHaveAttribute('aria-disabled', 'true');
     await card.getByTestId('clean-row').nth(1).getByTestId('chip-pause').click();
     await expect(card.getByTestId('clean-row').nth(1)).toContainText('Paused until');
-    await expect(gotIt).not.toHaveAttribute('aria-disabled', 'true');
-    const morning = page.getByRole('region', { name: 'Morning' });
-    await expect(morning).not.toContainText('Your usual deodorant.');
-    await expect(morning).toContainText('Fresh Bloom Deo Spray: paused');
-    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('You chose to keep using it.');
+    await expect(cont).not.toHaveAttribute('aria-disabled', 'true');
     const choices = async () => (((await savedPlan(page))?.shelf ?? []) as { product: string; trialChoice?: string }[]).map((i) => [i.product, i.trialChoice]);
     await expect.poll(choices).toEqual([
       ['Glow 7% Glycolic Toner', 'keep'],
       ['Fresh Bloom Deo Spray', 'pause'],
       ['Silk Hair Removal Cream', undefined],
     ]);
-    await gotIt.click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/start\/routine$/);
+    const morning = page.getByRole('region', { name: 'Morning' });
+    await expect(morning).not.toContainText('Your usual deodorant.');
+    await expect(morning).toContainText('Fresh Bloom Deo Spray: paused');
+    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('You chose to keep using it.');
+    await page.getByTestId('primary').click(); // every choice made: Got it goes straight on
     await expect(page).toHaveURL(/\/start\/photo/);
   });
 });

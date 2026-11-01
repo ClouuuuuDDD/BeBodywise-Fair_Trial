@@ -15,7 +15,12 @@ export function allChosen(shelf: ShelfItem[]): boolean {
 export const pausedUntil = (judgeBy?: ISODate) => (judgeBy ? `Paused until ${formatDayMonth(judgeBy)}.` : 'Paused until your judge-by date.');
 
 /** Spec 3.7: what to pause during the trial, her choice per product, and anything not checked yet. */
-export function CleanTrialCard({ plan, judgeBy }: { plan: Plan; judgeBy?: ISODate }) {
+/** True when Got it must open the clean-trial sheet: a flagged product has no answer, or something is unchecked. */
+export function needsCleanSheet(plan: Plan): boolean {
+  return !allChosen(plan.shelf) || openVariables(plan.shelf, plan.trialProduct).some((v) => v.why === 'unchecked');
+}
+
+export function CleanTrialCard({ plan, judgeBy, bare }: { plan: Plan; judgeBy?: ISODate; bare?: boolean }) {
   const flagged = plan.shelf.filter(needsTrialChoice);
   const unchecked = openVariables(plan.shelf, plan.trialProduct).filter((v) => v.why === 'unchecked');
   const [busy, setBusy] = useState<string | undefined>();
@@ -23,10 +28,10 @@ export function CleanTrialCard({ plan, judgeBy }: { plan: Plan; judgeBy?: ISODat
   const until = pausedUntil(judgeBy);
 
   return (
-    <section className={styles.clean} aria-label="Your clean trial" data-testid="clean-trial">
-      <h2 className={styles.stageTitle}>Your clean trial</h2>
+    <section className={bare ? styles.cleanBare : styles.clean} aria-label="Your clean trial" data-testid="clean-trial">
+      {bare ? null : <h2 className={styles.stageTitle}>Your clean trial</h2>}
       <p className={styles.stageBody}>Pausing these makes it clear whether the roll-on is what changed. Your call.</p>
-      <ul className={styles.cleanList}>
+      <ul className={bare ? styles.cleanListBare : styles.cleanList}>
         {flagged.map((i) => (
           <li key={i.id} className={styles.cleanRow} data-testid="clean-row">
             <p className={styles.cleanName}>

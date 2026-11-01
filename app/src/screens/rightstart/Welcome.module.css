@@ -10,9 +10,9 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 208px;
-  padding-top: 34px;
+  padding-top: 28px;
 }
 
 .title {
@@ -32,8 +32,8 @@
 
 .rangeScroll {
   position: relative;
-  margin: 14px -16px 0;
-  padding: 2px 16px 8px;
+  margin: 10px -16px 0;
+  padding: 2px 16px 4px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
 }
@@ -101,7 +101,7 @@
   flex-wrap: wrap;
   gap: 8px;
   margin: 0;
-  padding: 18px 0 0;
+  padding: 12px 0 0;
   list-style: none;
 }
 

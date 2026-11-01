@@ -1520,3 +1520,15 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+.cleanBare {
+  margin: 0;
+}
+
+.cleanListBare {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
