@@ -38,9 +38,9 @@ export function CleanTrialCard({ plan, judgeBy, bare }: { plan: Plan; judgeBy?: 
               <b>{i.product}</b> · {ACTION_LABEL[i.review!.action!]}
             </p>
             {i.review?.actionWhy ? <p className={styles.cleanWhy}>{i.review.actionWhy}</p> : null}
-            <div className={styles.cleanChoices} role="group" aria-label={`${i.product}: pause or keep`}>
-              <CheckChip value="pause" label="I'll pause it" checked={i.trialChoice === 'pause'} onChange={() => setTrialChoice(i.id, 'pause')} />
-              <CheckChip value="keep" label="I'll keep using it" checked={i.trialChoice === 'keep'} onChange={() => setTrialChoice(i.id, 'keep')} />
+            <div className={styles.cleanChoices} role="radiogroup" aria-label={`${i.product}: pause or keep`}>
+              <CheckChip radio value="pause" label="I'll pause it" checked={i.trialChoice === 'pause'} onChange={() => setTrialChoice(i.id, 'pause')} />
+              <CheckChip radio value="keep" label="I'll keep using it" checked={i.trialChoice === 'keep'} onChange={() => setTrialChoice(i.id, 'keep')} />
             </div>
             {i.trialChoice === 'pause' ? <p className={styles.cleanWhy}>{until}</p> : null}
             {i.trialChoice === 'keep' ? <p className={styles.cleanWhy}>Fine. Your verdict will say you kept it, so the result is less certain.</p> : null}

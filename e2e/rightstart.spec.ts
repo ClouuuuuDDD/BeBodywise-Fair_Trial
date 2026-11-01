@@ -726,7 +726,12 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(card.getByTestId('clean-row')).toHaveCount(2); // toner and spray say pause; the cream says different time
     const cont = sheet.getByRole('button', { name: 'Continue' });
     await expect(cont).toHaveAttribute('aria-disabled', 'true');
+    await expect(card).toContainText('whether the roll-on is what changed');
+    const group = card.getByTestId('clean-row').nth(0).getByRole('radiogroup');
+    await expect(group.getByRole('radio')).toHaveCount(2);
     await card.getByTestId('clean-row').nth(0).getByTestId('chip-keep').click();
+    await expect(group.getByRole('radio', { name: "I'll keep using it" })).toHaveAttribute('aria-checked', 'true');
+    await expect(group.getByRole('radio', { name: "I'll pause it" })).toHaveAttribute('aria-checked', 'false');
     await expect(cont).toHaveAttribute('aria-disabled', 'true');
     await card.getByTestId('clean-row').nth(1).getByTestId('chip-pause').click();
     await expect(card.getByTestId('clean-row').nth(1)).toContainText('Paused until');

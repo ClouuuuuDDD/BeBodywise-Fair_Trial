@@ -22,22 +22,24 @@ export interface CheckChipProps {
   disabled?: boolean;
   /** Compact pill (40 px) for inline asks. Still above 40 px; the row keeps a 44 px hit area through padding. */
   compact?: boolean;
+  /** One of a radiogroup (the parent sets role="radiogroup"): role="radio", and a tap only ever selects. */
+  radio?: boolean;
 }
 
 /** One multi-select choice. Has a check mark when on, so colour is never the only cue. */
-export function CheckChip({ label, checked, onChange, variant = 'pill', mascot, value, disabled, compact }: CheckChipProps) {
+export function CheckChip({ label, checked, onChange, variant = 'pill', mascot, value, disabled, compact, radio }: CheckChipProps) {
   const cls = [styles.chip, variant === 'card' ? styles.card : styles.pill, compact ? styles.compact : '', checked ? styles.on : '']
     .filter(Boolean)
     .join(' ');
   return (
     <button
       type="button"
-      role="checkbox"
+      role={radio ? 'radio' : 'checkbox'}
       aria-checked={checked}
       className={cls}
       disabled={disabled}
       data-testid={value ? `chip-${value}` : undefined}
-      onClick={() => onChange(!checked)}
+      onClick={() => onChange(radio ? true : !checked)}
     >
       {variant === 'card' && mascot ? <Mascot id={mascot} size={40} alt="" muted={!checked} bounce={checked} /> : null}
       <span className={styles.text}>{label}</span>
