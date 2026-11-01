@@ -58,13 +58,28 @@ export default function Routine() {
   const live = morningSteps.filter((m) => !isPaused(m.ref));
   const first = live[0];
   const until = pausedUntil(s.trial?.judgeByDate);
+  const keptLine = (product: string) => `${product}: you chose to keep using it. Your verdict will say so.`;
   const apartText = (ref: string, product: string, reason: string) => {
     const it = itemOf(ref);
     if (it && needsTrialChoice(it)) {
       if (it.trialChoice === 'pause') return `${product}: ${until}`;
-      if (it.trialChoice === 'keep') return `${product}: You chose to keep using it. Your verdict will say so.`;
+      if (it.trialChoice === 'keep') return keptLine(product);
     }
     return `${product}: ${lowerFirst(reason)}`;
+  };
+  /** D6: a morning line never reassures about a product the review did not pass, or flagged. */
+  const morningText = (ref: string, product: string, instruction: string) => {
+    const it = itemOf(ref);
+    if (it && it.catalogId !== plan.trialProduct) {
+      if (it.review?.status !== 'ok') return `${product}: not checked yet.`;
+      if (needsTrialChoice(it)) {
+        if (it.trialChoice === 'pause') return `${product}: ${lowerFirst(until)}`;
+        if (it.trialChoice === 'keep') return keptLine(product);
+      }
+      if (it.review.action === 'ask-doctor') return `${product}: ask a doctor before using it with the roll-on.`;
+    }
+    if (isPaused(ref)) return `${product}: ${lowerFirst(until)}`;
+    return isDeodorant(it) ? 'Your usual deodorant.' : `${product}: ${lowerFirst(instruction)}`;
   };
   const proceed = () => {
     track('routine_acknowledged', '07', { keep_apart_count: sp.keepApart.length });
@@ -118,11 +133,7 @@ export default function Routine() {
           ) : (
             morningSteps.map((m) => (
               <p key={m.ref} className={styles.stageBody}>
-                {isPaused(m.ref)
-                  ? `${m.product}: ${until.charAt(0).toLowerCase()}${until.slice(1)}`
-                  : isDeodorant(itemOf(m.ref))
-                    ? 'Your usual deodorant.'
-                    : `${m.product}: ${lowerFirst(m.instruction)}`}
+                {morningText(m.ref, m.product, m.instruction)}
               </p>
             ))
           )}

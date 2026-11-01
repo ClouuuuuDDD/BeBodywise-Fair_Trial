@@ -695,9 +695,25 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     const morning = page.getByRole('region', { name: 'Morning' });
     await expect(morning).not.toContainText('Your usual deodorant.');
     await expect(morning).toContainText('Fresh Bloom Deo Spray: paused');
-    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('You chose to keep using it.');
+    await expect(page.getByTestId('keep-apart').filter({ hasText: 'Glow 7% Glycolic Toner' })).toContainText('you chose to keep using it.');
     await page.getByTestId('primary').click(); // every choice made: Got it goes straight on
     await expect(page).toHaveURL(/\/start\/photo/);
+  });
+
+  test('D6: a morning product whose check failed says "not checked yet", never "Keep using it"', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
+    await page.getByTestId('primary').click(); // 05
+    await page.getByTestId('primary').click(); // 05b
+    await page.getByTestId('save-plan').click();
+    await page.getByTestId('primary').click(); // Start my plan
+    await expect(page).toHaveURL(/\/start\/routine$/);
+    const morning = page.getByRole('region', { name: 'Morning' });
+    await expect(morning).toContainText('Plain lotion: not checked yet.');
+    await expect(morning).not.toContainText('Keep using it');
+    await expect(morning).not.toContainText('keep using it');
   });
 });
 

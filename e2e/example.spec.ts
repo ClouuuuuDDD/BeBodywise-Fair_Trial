@@ -104,7 +104,7 @@ test.describe('Example trial', () => {
   test('AC-07-1: Day 0 routine for Riya', async ({ page }) => {
     await jump(page, 'day-0');
     await expect(page.getByText(/Fresh Bloom Deo Spray: paused until/)).toBeVisible();
-    await expect(page.getByTestId('keep-apart').first()).toContainText('You chose to keep using it');
+    await expect(page.getByTestId('keep-apart').first()).toContainText('you chose to keep using it');
     await expect(page.getByTestId('placeholder-rules')).toBeVisible();
     await expect(page.getByTestId('running-head')).toHaveText('Day 0 · 1 of 3');
   });
