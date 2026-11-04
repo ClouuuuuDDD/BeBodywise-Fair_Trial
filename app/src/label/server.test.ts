@@ -105,7 +105,7 @@ describe('kinds', () => {
     const res = await handleReadLabel(req({ kind: 'ingredients', image: JPEG_B64, context: CTX }), { GEMINI_API_KEY: 'k' }, 'ip', f, () => Date.parse('2026-10-31T10:00:00Z'));
     const body = await read(res);
     expect(res.status).toBe(200);
-    expect(body).toMatchObject({ ok: true, ingredientsText: DISH, provider: 'gemini', model: CHAIN[0]!.model });
+    expect(body).toMatchObject({ ok: true, ingredientsText: DISH, provider: 'gemini', model: CHAIN.find((e) => e.provider === 'gemini')!.model });
     expect(body.review).toMatchObject({ status: 'ok', action: 'stop-on-skin', promptVersion: 'shelf-review-v1', reviewedOn: '2026-10-31', provider: 'gemini' });
     const sent = JSON.parse(f.mock.calls[0]![1]!.body as string);
     expect(sent.systemInstruction.parts[0].text).toContain('ROLE');

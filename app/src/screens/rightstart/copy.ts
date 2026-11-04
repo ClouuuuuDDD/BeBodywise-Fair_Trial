@@ -106,6 +106,7 @@ export const add = {
   captured: 'Got it. Hold still.',
   take: 'Take photo',
   reading: 'Reading the label…',
+  readingLong: 'Still reading. Small print takes a moment.',
   retake: 'Hold it flat, closer, in daylight.',
   error: "We couldn't read this label just now.",
   errorTry: 'Try again',
@@ -140,8 +141,6 @@ export const confirm = {
   sweat: 'Sweat',
   smell: 'Smell',
   both: 'Both',
-  checking: 'Checking it against your plan…',
-  addUnchecked: 'Add it now, check later',
 } as const;
 
 export const answers = {

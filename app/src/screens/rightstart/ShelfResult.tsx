@@ -52,7 +52,7 @@ function Answers() {
     <AppShell screen="05" ground={stopFirst ? 'plain' : 'dots'} header={{ back: '/check/shelf', title: t.runningHead }}>
       <div className={styles.intro}>
         <div className={styles.introText}>
-          <h1 className={styles.title} aria-live="polite" data-testid="review-summary">{reviewSummary(s.shelf)}</h1>
+          <h1 className={styles.title} aria-live="polite" data-testid="review-summary">{reviewSummary(s.shelf, s.checking.length)}</h1>
           {rows.length > 0 ? <p className={styles.lead}>{REVIEW_COPY.lead}</p> : null}
         </div>
         <DrMehr pose="clipboard" size={74} alt="Dr. Mehr with a clipboard" />
@@ -60,16 +60,18 @@ function Answers() {
       <ul className={styles.rows}>
         {rows.map((item) => {
           const rv = item.review;
-          const ok = rv?.status === 'ok' && rv.action !== undefined;
+          const running = s.checking.includes(item.id);
+          const ok = !running && rv?.status === 'ok' && rv.action !== undefined;
           const action = ok ? rv.action! : undefined;
+          const state = action ?? (running ? 'checking' : 'unchecked');
           const worried = action === 'stop-on-skin' || action === 'ask-doctor';
           const base = mascotForItem(item);
           return (
-            <li key={item.id} className={styles.row} data-testid="review-row" data-action={action ?? 'unchecked'}>
+            <li key={item.id} className={styles.row} data-testid="review-row" data-action={state}>
               <Mascot id={worried ? worriedFor(base) : base} size={52} alt="" />
               <div>
-                <span className={styles.pill} data-action={action ?? 'unchecked'}>
-                  {action ? ACTION_LABEL[action] : REVIEW_COPY.unchecked}
+                <span className={styles.pill} data-action={state}>
+                  {action ? ACTION_LABEL[action] : running ? REVIEW_COPY.checking : REVIEW_COPY.unchecked}
                 </span>
                 <span className={styles.name}>{item.product}</span>
                 {ok && rv.culprits.length > 0 ? (
@@ -96,7 +98,8 @@ function Answers() {
                 ) : ok && rv.confidence === 'low' ? (
                   <p className={styles.unsure}>{REVIEW_COPY.lowConfidence}</p>
                 ) : null}
-                {!ok ? (
+                {running ? <p className={styles.text}>{REVIEW_COPY.checkingLine}</p> : null}
+                {!ok && !running ? (
                   <p className={styles.text}>
                     {REVIEW_COPY.failed}{' '}
                     <TextLink onClick={() => void retry(item.id)} data-testid="retry-review">
@@ -113,7 +116,8 @@ function Answers() {
         <PlaceholderRulesNote text={AI_REVIEW_LABEL} />
       </div>
       <BottomBar sticky>
-        <PrimaryButton to="/check/match">{t.primary}</PrimaryButton>
+        {/* The plan copies the shelf when saved, so she moves on once every answer is in. */}
+        <PrimaryButton to="/check/match" loading={s.checking.length > 0}>{t.primary}</PrimaryButton>
         {stopFirst ? (
           <TextLink href={DOCTOR_URL} external onClick={() => track('doctor_link_clicked', '05', { from: 'stop-ask' })} data-testid="doctor-link">
             {match.doctor}

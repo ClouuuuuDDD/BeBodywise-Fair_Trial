@@ -26,30 +26,38 @@ export interface ChainEntry {
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 
 /**
- * Order from the outage diagnosis of 4 Nov 2026: the free Gemini tier answered 503 "high demand" or hung on every
- * model for long stretches, so no single provider can be trusted and the chain starts entries staggered (runChain).
- * Gemini 3.1 Flash Lite is the spike's most consistent model and names culprits best. Groq is next because it fails
- * or answers in about 1 s (1,000 a day, 8K tokens a minute); OpenRouter's free models allow only 50 a day without
- * credits, so it comes after Groq.
+ * Order for photos, from timings on a real label on 4 Nov 2026. Nemotron was the steadiest (5 of 6, 2.3 to 3.7 s).
+ * Gemini 3.1 Flash Lite is good when up but goes down for long stretches (503 "high demand"). Groq is fastest but a
+ * photo uses up its 8K tokens a minute, so it often answers 429; that costs under a second. Free tiers fail together
+ * at times, so the chain starts entries staggered (runChain). Text checks put Groq first (TEXT_FIRST).
+ * OpenRouter allows 50 free requests a day without credits; past that it answers 429 and the next entry takes over.
  */
 export const CHAIN: readonly ChainEntry[] = [
+  // Nemotron is a reasoning model: with thinking on it spends the whole budget and returns no content (spike, 1 Nov 2026).
+  { provider: 'openrouter', model: 'nvidia/nemotron-3.5-super-vl:free', api: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', vision: true, jsonMode: 'object', systemRole: true, extra: { reasoning: { enabled: false } } },
   { provider: 'gemini', model: 'gemini-3.1-flash-lite', api: 'gemini-native', vision: true, jsonMode: 'schema', systemRole: true },
   // Qwen 3.8 reasons by default and then returns broken JSON ("{\"}}", HTTP 400). Reasoning off plus JSON mode (not Groq's
   // strict schema check, which also 400s under load) went 12 of 12 on 4 Nov 2026; validateReview still checks every answer.
   { provider: 'groq', model: 'qwen/qwen3.8-27b', api: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', vision: true, jsonMode: 'object', systemRole: true, extra: { reasoning_effort: 'none' } },
-  // Nemotron is a reasoning model: with thinking on it spends the whole budget and returns no content (spike, 1 Nov 2026).
-  { provider: 'openrouter', model: 'nvidia/nemotron-3.5-super-vl:free', api: 'openai', url: 'https://openrouter.ai/api/v1/chat/completions', vision: true, jsonMode: 'object', systemRole: true, extra: { reasoning: { enabled: false } } },
   { provider: 'gemini', model: 'gemini-3.5-flash', api: 'gemini-native', vision: true, jsonMode: 'schema', systemRole: true },
   // 6 to 10 s per review over REST (4 Nov 2026), so it gets a longer attempt.
   { provider: 'workers-ai', model: '@cf/meta/llama-4-scout-17b-16e-instruct', api: 'workers-ai', vision: true, jsonMode: 'schema', systemRole: true, attemptMs: 13_000 },
 ];
+
+/** With no photo Groq goes first: 1.4 s for the same verdicts and culprits as the others, and it spares OpenRouter's daily 50. */
+const TEXT_FIRST: ProviderId = 'groq';
+
+function orderFor(hasPhoto: boolean): readonly ChainEntry[] {
+  if (hasPhoto) return CHAIN;
+  return [...CHAIN.filter((e) => e.provider === TEXT_FIRST), ...CHAIN.filter((e) => e.provider !== TEXT_FIRST)];
+}
 
 /**
  * deadlineMs: the whole call. attemptMs: one entry. hedgeMs: with no answer yet, the next entry starts this long after
  * the last one (a failure starts it at once). maxInFlight: entries running at once, to spare the free daily quotas.
  * minAttemptMs: an entry starts only if this much of the deadline is left.
  */
-export const CHAIN_LIMITS = { deadlineMs: 22_000, attemptMs: 9_000, hedgeMs: 4_000, maxInFlight: 3, minAttemptMs: 3_000, maxOutputTokens: 2048 } as const;
+export const CHAIN_LIMITS = { deadlineMs: 22_000, attemptMs: 9_000, hedgeMs: 3_500, maxInFlight: 3, minAttemptMs: 3_000, maxOutputTokens: 2048 } as const;
 
 export interface AiBinding {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
@@ -90,8 +98,8 @@ function keyFor(e: ChainEntry, env: ProviderEnv): string | undefined {
   return env.AI ? 'binding' : undefined;
 }
 
-function modelFor(e: ChainEntry, env: ProviderEnv, index: number): string {
-  if (index === 0 && e.provider === 'gemini' && env.GEMINI_MODEL?.trim()) return env.GEMINI_MODEL.trim();
+function modelFor(e: ChainEntry, env: ProviderEnv): string {
+  if (e === CHAIN.find((x) => x.provider === 'gemini') && env.GEMINI_MODEL?.trim()) return env.GEMINI_MODEL.trim();
   if (e.provider === 'openrouter' && env.OPENROUTER_MODEL?.trim()) return env.OPENROUTER_MODEL.trim();
   return e.model;
 }
@@ -216,7 +224,7 @@ export async function runChain<T>(task: ModelTask<T>, env: ProviderEnv, deps: Ch
   const left = () => CHAIN_LIMITS.deadlineMs - (deps.now() - start);
   const tried: ProviderId[] = [];
   const stop = new AbortController();
-  const queue = CHAIN.map((e, i) => ({ e, i, key: keyFor(e, env) })).filter((x) => x.key && !(task.imageBase64 && !x.e.vision));
+  const queue = orderFor(Boolean(task.imageBase64)).map((e) => ({ e, key: keyFor(e, env) })).filter((x) => x.key && !(task.imageBase64 && !x.e.vision));
 
   type Settled = { kind: 'done'; value: T | null; e: ChainEntry; model: string } | { kind: 'tick' };
   const inFlight = new Set<Promise<Settled>>();
@@ -225,7 +233,7 @@ export async function runChain<T>(task: ModelTask<T>, env: ProviderEnv, deps: Ch
     const next = queue[0];
     if (!next || left() < CHAIN_LIMITS.minAttemptMs || inFlight.size >= CHAIN_LIMITS.maxInFlight) return;
     queue.shift();
-    const model = modelFor(next.e, env, next.i);
+    const model = modelFor(next.e, env);
     tried.push(next.e.provider);
     const ms = Math.min(next.e.attemptMs ?? CHAIN_LIMITS.attemptMs, left());
     const p: Promise<Settled> = callEntry(next.e, model, next.key!, env, task as ModelTask<unknown>, ms, deps.fetch, stop.signal)

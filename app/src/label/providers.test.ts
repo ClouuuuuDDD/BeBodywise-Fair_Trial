@@ -8,7 +8,9 @@ const task = (over: Partial<ModelTask<string>> = {}): ModelTask<string> => ({
   accept: (t) => (t.includes('good') ? t : null), ...over,
 });
 const allKeys = { GEMINI_API_KEY: 'g', OPENROUTER_API_KEY: 'o', GROQ_API_KEY: 'q' };
-const idx = (provider: string, from = 0) => CHAIN.findIndex((e, i) => i >= from && e.provider === provider);
+const photo = { imageBase64: '/9j/x' };
+const geminis = CHAIN.filter((e) => e.provider === 'gemini');
+const host = (u: unknown) => new URL(String(u)).hostname;
 
 /** A fetch that never answers until its signal aborts (a hung model). Records the aborts. */
 function hang(aborted: string[] = []) {
@@ -32,29 +34,54 @@ beforeEach(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
+describe('runChain order', () => {
+  it('a photo goes to OpenRouter first', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(chatOk('good'));
+    const r = await runChain(task(photo), allKeys, { fetch: f, now: () => 0 });
+    expect(r).toMatchObject({ ok: true, provider: 'openrouter' });
+    expect(host(f.mock.calls[0]![0])).toBe('openrouter.ai');
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
+  it('a text check goes to Groq first', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(chatOk('good'));
+    const r = await runChain(task(), allKeys, { fetch: f, now: () => 0 });
+    expect(r).toMatchObject({ ok: true, provider: 'groq' });
+    expect(host(f.mock.calls[0]![0])).toBe('api.groq.com');
+  });
+
+  it('a photo over OpenRouter\'s daily limit (429) reaches Gemini without waiting', async () => {
+    const c = clock();
+    const f = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response('', { status: 429 })).mockResolvedValue(geminiOk('good'));
+    const r = await runChain(task(photo), allKeys, { fetch: f, now: c.now, wait: c.wait });
+    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: geminis[0]!.model });
+    expect(c.t).toBe(0);
+  });
+});
+
 describe('runChain', () => {
-  it('first provider answers: native Gemini request with JSON schema', async () => {
+  it('native Gemini request with JSON schema', async () => {
     const f = vi.fn<typeof fetch>().mockResolvedValue(geminiOk('good'));
-    const r = await runChain(task({ imageBase64: '/9j/x' }), allKeys, { fetch: f, now: () => 0 });
-    expect(r).toMatchObject({ ok: true, value: 'good', provider: 'gemini', model: CHAIN[0]!.model });
+    const r = await runChain(task(photo), { GEMINI_API_KEY: 'g' }, { fetch: f, now: () => 0 });
+    expect(r).toMatchObject({ ok: true, value: 'good', provider: 'gemini', model: geminis[0]!.model });
     expect(f).toHaveBeenCalledTimes(1);
     const [url, init] = f.mock.calls[0]!;
-    expect(String(url)).toContain(`models/${CHAIN[0]!.model}:generateContent`);
+    expect(String(url)).toContain(`models/${geminis[0]!.model}:generateContent`);
     const body = JSON.parse(init!.body as string);
     expect(body.systemInstruction.parts[0].text).toBe('SYS');
     expect(body.contents[0].parts[1].inline_data).toEqual({ mime_type: 'image/jpeg', data: '/9j/x' });
     expect(body.generationConfig).toMatchObject({ temperature: 0, responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'low' } });
   });
 
-  it('429, 503 and a bad answer each start the next entry at once, in chain order', async () => {
+  it('429, 503 and a bad answer each start the next entry at once, in order', async () => {
     const c = clock();
     const f = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response('', { status: 429 }))
       .mockResolvedValueOnce(new Response('', { status: 503 }))
-      .mockResolvedValueOnce(chatOk('bad'))
+      .mockResolvedValueOnce(geminiOk('bad'))
       .mockResolvedValue(geminiOk('good'));
     const r = await runChain(task(), allKeys, { fetch: f, now: c.now, wait: c.wait });
-    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: CHAIN[idx('gemini', 1)]!.model });
+    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: geminis[1]!.model });
     expect(f).toHaveBeenCalledTimes(4);
     expect(c.t).toBe(0); // no failure waited for the hedge
   });
@@ -62,18 +89,18 @@ describe('runChain', () => {
   it('a hung first model costs hedgeMs, not a whole attempt: the next starts and wins, the hung one is aborted', async () => {
     const c = clock();
     const aborted: string[] = [];
-    const f = vi.fn<typeof fetch>().mockImplementationOnce(hang(aborted)).mockResolvedValue(chatOk('good'));
-    const r = await runChain(task(), allKeys, { fetch: f, now: c.now, wait: c.wait });
-    expect(r).toMatchObject({ ok: true, provider: CHAIN[1]!.provider });
+    const f = vi.fn<typeof fetch>().mockImplementationOnce(hang(aborted)).mockResolvedValue(geminiOk('good'));
+    const r = await runChain(task(photo), allKeys, { fetch: f, now: c.now, wait: c.wait });
+    expect(r).toMatchObject({ ok: true, provider: 'gemini' });
     expect(c.t).toBe(CHAIN_LIMITS.hedgeMs);
     expect(aborted).toHaveLength(1);
-    expect(aborted[0]).toContain(':generateContent');
+    expect(host(aborted[0])).toBe('openrouter.ai');
   });
 
   it('runs at most maxInFlight entries at once, then gives up at the deadline', async () => {
     const c = clock();
     const f = vi.fn<typeof fetch>().mockImplementation(hang());
-    const r = await runChain(task(), allKeys, { fetch: f, now: c.now, wait: c.wait });
+    const r = await runChain(task(photo), allKeys, { fetch: f, now: c.now, wait: c.wait });
     expect(r).toEqual({ ok: false, tried: CHAIN.slice(0, CHAIN_LIMITS.maxInFlight).map((e) => e.provider) });
     expect(f).toHaveBeenCalledTimes(CHAIN_LIMITS.maxInFlight);
     expect(c.t).toBeGreaterThanOrEqual(CHAIN_LIMITS.deadlineMs);
@@ -86,8 +113,8 @@ describe('runChain', () => {
       .mockImplementationOnce(hang())
       .mockResolvedValueOnce(new Response('', { status: 400 }))
       .mockResolvedValue(geminiOk('good'));
-    const r = await runChain(task(), allKeys, { fetch: f, now: c.now, wait: c.wait });
-    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: CHAIN[idx('gemini', 1)]!.model });
+    const r = await runChain(task(photo), allKeys, { fetch: f, now: c.now, wait: c.wait });
+    expect(r).toMatchObject({ ok: true, provider: 'gemini', model: geminis[1]!.model });
   });
 
   it('does not start an entry with less than minAttemptMs left', async () => {
@@ -111,7 +138,7 @@ describe('runChain', () => {
 
   it('skips entries without a key or binding, and non-vision entries for photos', async () => {
     const f = vi.fn<typeof fetch>().mockResolvedValue(chatOk('good'));
-    const r = await runChain(task({ imageBase64: '/9j/x' }), { GROQ_API_KEY: 'q' }, { fetch: f, now: () => 0 });
+    const r = await runChain(task(photo), { GROQ_API_KEY: 'q' }, { fetch: f, now: () => 0 });
     const groqHasVision = CHAIN.find((e) => e.provider === 'groq')?.vision ?? false;
     expect(r.ok).toBe(groqHasVision);
   });

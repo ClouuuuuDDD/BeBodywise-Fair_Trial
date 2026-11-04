@@ -43,8 +43,9 @@ const labelOf = (cls: IngredientClass): string => (ingredientRules.classes as Re
 /** A review from the pair rules for one product against the anchor, or null when no rule fires. Pure. */
 export function rulesReview(item: ShelfItem, anchor: BodywiseProductId, today: string): ShelfReview | null {
   const row = pairRules([item], anchor)[0];
-  const action = row ? ACTION[row.answer] : null;
-  if (!row || !action) return null;
+  const ruled = row ? ACTION[row.answer] : null;
+  if (!row || !ruled) return null;
+  const action = item.stung && ruled === 'different-time' ? 'pause-during-trial' : ruled; // as the AI prompt: stung is at least a pause
 
   const culprits: ReviewCulprit[] = [];
   for (const ing of item.ingredients) {

@@ -27,6 +27,11 @@ describe('rulesReview (fallback when no AI answers)', () => {
     expect(rulesReview(cream, 'bw-rollon-4', DAY)).toMatchObject({ action: 'different-time' });
   });
 
+  it('stung makes a "different time" answer at least a pause', () => {
+    const stung = { ...cream, stung: true };
+    expect(rulesReview(stung, 'bw-rollon-4', DAY)).toMatchObject({ action: 'pause-during-trial' });
+  });
+
   it('no rule fires: no answer, so it is never shown as Keep (a dishwash bar is not "fine")', () => {
     expect(rulesReview(dishwash, 'bw-rollon-4', DAY)).toBeNull();
     expect(rulesReview(lotion, 'bw-rollon-4', DAY)).toBeNull();

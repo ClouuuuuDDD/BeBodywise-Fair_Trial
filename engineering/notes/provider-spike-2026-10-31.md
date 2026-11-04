@@ -84,3 +84,22 @@ Real keys from `.dev.vars`, built app served by `wrangler pages dev --port 8788 
 **Changes.** Chain order Gemini 3.1 Flash Lite, Groq (reasoning off, JSON mode), OpenRouter, Gemini 3.5 Flash, Workers AI (13 s attempt). `runChain` starts entries staggered (next one after 4 s without an answer, or at once on a failure; at most 3 at once) instead of strictly one after another. The Workers AI adapter reads both reply shapes. On the phone, when no provider answers, `rulesReview` gives the pair-rule answer if one fires (provider "rules", labelled on screen); no rule firing stays "couldn't check" (a dishwash bar matches no pair rule, so it is never shown as Keep).
 
 **Result** through the real handler with production's keys: 13 of 14 answered, 2 to 8 s. The one miss had all four reachable providers fail in the same 15 s, so free tiers can be down together; that is what the rules fallback and `npm run smoke` are for.
+
+## Addendum 2, 4 Nov 2026: order and waiting
+
+**Timings on a real label photo** (e2e/fixtures/label-test.jpg, 3 runs each, spaced 6 s):
+
+| model | read and review | read only |
+|---|---|---|
+| openrouter nemotron | 3.7, 2.9, 2.3 s | 2.5, 2.6 s, one timeout |
+| gemini-3.1-flash-lite | 5.0, 2.5 s, one timeout | 5.2, 2.3, 3.0 s |
+| groq qwen3.8 | 1.3, 2.4 s, one 429 | 0.9 s, two 429s (a photo uses up its 8K tokens a minute) |
+| gemini-3.5-flash | 5.6 s, one timeout, one 503 | 3.7, 3.8, 3.5 s |
+
+Reading alone is no faster than reading and reviewing, so the photo call stays one call.
+
+**Text checks:** Gemini, Groq and OpenRouter gave the same action on a roll-on and a dishwash bar and named real culprits. Groq took 1.4 s; Gemini 4.8 to 7.4 s.
+
+**Changes.** Photos go to OpenRouter first, text checks to Groq first; hedge 3.5 s. The check on 04b no longer blocks: "Looks right" adds the product at once, the check runs in the background (`checkInBackground`), and 05, the only screen that shows it, fills in live and holds Continue until it lands, because the plan copies the shelf when saved.
+
+**Result** through the real handler: photos 2.3 to 3.3 s, text 1.7 to 7.7 s, 6 of 6.
