@@ -20,7 +20,8 @@
     "lint": "npm run sync-data && eslint .",
     "typecheck": "npm run typecheck -w app && npm run typecheck:functions",
     "typecheck:functions": "npm run sync-data && tsc -p functions/tsconfig.json",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "smoke": "node scripts/smoke-prod.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

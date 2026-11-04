@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import type { ShelfItem, ShelfReview, UseTime } from '../../contracts';
 import { classesOf, classifyIngredients, makeShelfItem } from '../../engine';
-import { failedReview, reviewShelfItem } from '../../review';
+import { failedReview } from '../../review';
 import { track } from '../../state';
-import { addShelfItem, newItemId, reviewContextFor, todayISO, useRightStart } from '../../state/rightStart';
+import { addShelfItem, checkInBackground, newItemId, todayISO, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, CheckChip, Icon, Mascot, PrimaryButton, ResultCard, Sheet, TextLink } from '../../ui';
 import { activeLines, chipClass, toneOf } from './components/activeInfo';
 import { mascotForItem } from './components/mascotFor';
@@ -51,18 +51,7 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
 
   const meta = draft.fromPhotos ? `Read from your 2 photos · ${classified.length} ingredients` : `${classified.length} ingredients`;
   const ready = time !== undefined;
-  const [checking, setChecking] = useState(false);
-  const abort = useRef<AbortController | null>(null);
   const busy = useRef(false);
-  const unmounted = useRef(false);
-  // Leaving 04b mid-check aborts the call and commits nothing (no add, no navigate from a dead screen).
-  useEffect(
-    () => () => {
-      unmounted.current = true;
-      abort.current?.abort();
-    },
-    [],
-  );
   const listEdited = list.join('|') !== draft.inci.join('|');
   // Spec 3.4: an edited list or a new "stung" means the photo's review is stale; re-judge from text on "Looks right".
   const current: ShelfReview | undefined = draft.review && (listEdited || stung) ? { ...draft.review, status: 'stale' } : draft.review;
@@ -82,17 +71,8 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
       catalogId: draft.catalogId,
       antiperspirantFor,
     });
-    let review = current;
-    if (needsReview) {
-      setChecking(true);
-      abort.current = new AbortController();
-      review = await reviewShelfItem(base, reviewContextFor({ frontName: displayName, when: time, stung }), todayISO(), { signal: abort.current.signal });
-      abort.current = null;
-      // She left 04b: add nothing. "Add it now, check later" also aborts, but she is still here, so it adds as failed.
-      if (unmounted.current) return;
-      setChecking(false);
-    }
-    const item: ShelfItem = { ...base, review: review ?? failedReview(todayISO()) };
+    // She never waits here: a check that is still needed runs in the background and lands on 05, the screen that shows it.
+    const item: ShelfItem = { ...base, review: needsReview ? failedReview(todayISO()) : current };
     track('label_read_confirmed', '04b', { edited, classes: item.classes });
     track('shelf_item_added', '04b', {
       source: item.source,
@@ -104,6 +84,7 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
     });
     if (antiperspirantFor) track('conditional_answered', '04b', { question: 'sweat-or-smell', answer: antiperspirantFor });
     await addShelfItem(item);
+    if (needsReview) void checkInBackground(item.id, { frontName: displayName, when: time, stung });
     void navigate(returnTo === 'keep' ? '/keep' : '/check/shelf', { state: { added: item.id } });
   }
 
@@ -229,19 +210,11 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
           <p className={styles.needHint} role="status" data-testid="confirm-hint">
             {confirm.needWhen}
           </p>
-        ) : checking ? (
-          <p className={styles.needHint} role="status" data-testid="checking-status">
-            {confirm.checking}
-          </p>
         ) : null}
-        <PrimaryButton onClick={primary} disabled={!ready} loading={checking} size="md">
+        <PrimaryButton onClick={primary} disabled={!ready} size="md">
           {confirm.primary}
         </PrimaryButton>
-        {checking ? (
-          <TextLink onClick={() => abort.current?.abort()} data-testid="add-unchecked">
-            {confirm.addUnchecked}
-          </TextLink>
-        ) : editing ? (
+        {editing ? (
           <TextLink to="/check/shelf/add" data-testid="retake">
             Retake the photos
           </TextLink>

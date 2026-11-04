@@ -90,7 +90,8 @@
 .pill[data-action='pause-during-trial'] { background: var(--answer-wait-bg); color: var(--answer-wait-fg); }
 .pill[data-action='stop-on-skin'] { background: var(--answer-pick-bg); color: var(--answer-pick-fg); }
 .pill[data-action='ask-doctor'] { background: var(--answer-stop-bg); color: var(--answer-stop-fg); }
-.pill[data-action='unchecked'] { background: var(--surface); color: var(--ink-muted); box-shadow: inset 0 0 0 1.5px currentColor; }
+.pill[data-action='unchecked'],
+.pill[data-action='checking'] { background: var(--surface); color: var(--ink-muted); box-shadow: inset 0 0 0 1.5px currentColor; }
 
 .flag {
   margin: 4px 0 0;

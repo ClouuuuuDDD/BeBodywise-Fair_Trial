@@ -71,6 +71,8 @@ export interface RightStartState {
   draft: ShelfDraft | undefined;
   /** Product she arrived with (?product=), kept in the draft. */
   selectedProductId: BodywiseProductId | undefined;
+  /** Shelf ids with a check running in the background. In memory only: a reload shows Retry, never a stuck spinner. */
+  checking: string[];
 }
 
 const INITIAL: RightStartState = {
@@ -83,6 +85,7 @@ const INITIAL: RightStartState = {
   plan: undefined,
   draft: undefined,
   selectedProductId: undefined,
+  checking: [],
 };
 
 let state: RightStartState = INITIAL;
@@ -292,12 +295,25 @@ export function reviewContextFor(thisProduct: ReviewContext['thisProduct'], excl
   });
 }
 
-/** "Retry" on 05 for a product whose review failed. Never in example mode: the example makes no AI calls. */
-export async function retryShelfReview(id: string): Promise<void> {
+/**
+ * Checks a product on the shelf without holding her up: the answer lands on the item, and 05 (the only screen that
+ * shows it) fills in live. reviewShelfItem never throws and is bounded by the call timeout, so `checking` always clears.
+ * Never in example mode: the example makes no AI calls.
+ */
+export async function checkInBackground(id: string, thisProduct: ReviewContext['thisProduct']): Promise<void> {
   const item = state.shelf.find((i) => i.id === id);
-  if (!item || getExample() !== null) return;
-  const review = await reviewShelfItem(item, reviewContextFor({ when: item.times, stung: item.stung }, id), todayISO());
-  await updateShelfItem(id, { review });
+  if (!item || getExample() !== null || state.checking.includes(id)) return;
+  set({ checking: [...state.checking, id] });
+  const review = await reviewShelfItem(item, reviewContextFor(thisProduct, id), todayISO(), { anchor: targetProduct() });
+  const saving = updateShelfItem(id, { review }); // updates the shelf at once, then saves
+  set({ checking: state.checking.filter((x) => x !== id) });
+  await saving;
+}
+
+/** "Retry" on 05 for a product whose review failed. */
+export function retryShelfReview(id: string): Promise<void> {
+  const item = state.shelf.find((i) => i.id === id);
+  return item ? checkInBackground(id, { when: item.times, stung: item.stung }) : Promise.resolve();
 }
 
 /** Updates a product already on the shelf: when she uses it, or its review. */

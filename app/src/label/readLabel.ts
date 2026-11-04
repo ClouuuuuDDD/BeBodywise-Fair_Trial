@@ -66,7 +66,7 @@ export function latencyBucket(ms: number): '<2s' | '2-5s' | '5-10s' | '>10s' {
 
 /**
  * Reads one label photo. Order: resize in the browser -> /api/read-label (timeout, one retry;
- * the server walks its chain: Gemini 3.5 then 3.1 Flash Lite, Workers AI, OpenRouter, Groq) -> Tesseract.js in the browser -> status "manual"
+ * the server starts its chain staggered: OpenRouter, Gemini 3.1 Flash Lite, Groq, Gemini 3.5 Flash, Workers AI) -> Tesseract.js in the browser -> status "manual"
  * (the screen shows "type it in"). Never throws. A "retake" result still carries the text so
  * she can see it. Nothing is decided here: she confirms on 04b.
  */

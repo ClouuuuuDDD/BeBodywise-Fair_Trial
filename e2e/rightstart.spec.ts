@@ -507,13 +507,13 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     expect(ing.context.her).toEqual({ shade: 'moderate', duration: 'year-plus', hairRemoval: 'razor' });
     expect(ing.context.target.name).toBe('4% AHA BHA Underarm Roll On');
     await addLabelProduct(page, mock, 'cream', { time: 'now-and-then', stung: true });
-    expect(mock.bodies.filter((b) => b.kind === 'review-text')).toHaveLength(1);
+    await expect.poll(() => mock.bodies.filter((b) => b.kind === 'review-text').length).toBe(1);
     mock.reviewStatus = 502;
     await addTypedProduct(page, mock, 'Plain lotion', 'Aqua, Glycerin, Cetyl Alcohol, Dimethicone', { time: 'morning' });
     await expect(page.getByTestId('shelf-row')).toHaveCount(3);
   });
 
-  test('04b: while the text check runs, a visible status says so; "Add it now, check later" adds it unchecked', async ({ page }) => {
+  test('04b never waits: the check runs in the background, 05 fills in live and holds Continue until it lands', async ({ page }) => {
     const mock = await setup(page);
     await fitCheck(page, RIYA);
     let release!: () => void;
@@ -526,35 +526,20 @@ test.describe('04 Your shelf, 04a Add a product, 04b Check what we read', () => 
     await page.getByTestId('type-continue').click();
     await page.getByTestId('chip-morning').click();
     await page.getByTestId('primary').click();
-    await expect(page.getByTestId('checking-status')).toHaveText('Checking it against your plan…');
-    await expect(page.getByRole('status').filter({ hasText: 'Checking it against your plan' })).toBeVisible();
-    await page.getByTestId('add-unchecked').click();
-    await expect(page).toHaveURL(/\/check\/shelf$/);
+    await expect(page).toHaveURL(/\/check\/shelf$/); // straight on, with the check still running
     await expect(page.getByTestId('shelf-row')).toHaveCount(1);
-    release();
-  });
-
-  test('04b: leaving mid-check aborts it and adds nothing', async ({ page }) => {
-    const mock = await setup(page);
-    await fitCheck(page, RIYA);
-    let release!: () => void;
-    mock.reviewGate = new Promise<void>((r) => (release = r));
-    mock.review = REVIEWS.default;
-    await page.getByTestId('add-product').click();
-    await page.getByTestId('type-name').click();
-    await page.getByTestId('typed-name').fill('Plain lotion');
-    await page.getByTestId('typed-ingredients').fill('Aqua, Glycerin, Cetyl Alcohol, Dimethicone');
-    await page.getByTestId('type-continue').click();
-    await page.getByTestId('chip-morning').click();
     await page.getByTestId('primary').click();
-    await expect(page.getByTestId('checking-status')).toBeVisible();
-    await page.getByTestId('back').click();
-    await expect(page).toHaveURL(/\/check\/shelf\/add/);
+    await expect(page).toHaveURL(/\/check\/shelf\/answer$/);
+    const row = page.getByTestId('review-row');
+    await expect(row).toHaveAttribute('data-action', 'checking');
+    await expect(row).toContainText('Checking it against your plan.');
+    await expect(row).not.toContainText("We couldn't check this one.");
+    await expect(page.getByRole('heading', { name: 'Checking one product…' })).toBeVisible();
+    await expect(page.getByTestId('primary')).toHaveAttribute('aria-disabled', 'true'); // held: the plan copies the shelf when saved
     release();
-    await page.waitForTimeout(300);
-    await expect(page).toHaveURL(/\/check\/shelf\/add/);
-    await page.goto('/check/shelf');
-    await expect(page.getByTestId('shelf-row')).toHaveCount(0);
+    await expect(row).toHaveAttribute('data-action', 'keep');
+    await page.getByTestId('primary').click();
+    await expect(page).toHaveURL(/\/check\/match$/);
   });
 
   test('AC-04-3: tapping a row edits when, or removes the product', async ({ page }) => {
@@ -614,6 +599,22 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await page.getByTestId('retry-review').click();
     await expect(row).toHaveAttribute('data-action', 'keep');
     await expect(summary).not.toHaveText("One product isn't checked yet.");
+  });
+
+  test('AI down: an acid toner is checked by the draft ingredient rules, says so, and can be re-checked with AI', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Glow 7% Glycolic Toner', 'Aqua, Glycolic Acid, Glycerin, Sodium Hydroxide, Parfum', { time: 'night' });
+    await page.getByTestId('primary').click();
+    const row = page.getByTestId('review-row');
+    await expect(row).toHaveAttribute('data-action', 'pause-during-trial');
+    await expect(row.getByTestId('culprits')).toContainText('Glycolic Acid');
+    await expect(row.getByTestId('rules-review')).toContainText('Checked by our draft ingredient rules');
+    await expect(row).not.toContainText("We couldn't check this one.");
+    mock.reviewStatus = 200;
+    await row.getByTestId('retry-review').click();
+    await expect(row.getByTestId('rules-review')).toHaveCount(0);
   });
 
   test('AC-05b-1..3: 4% No Fragrance, cost strip, list price, four other products', async ({ page }) => {

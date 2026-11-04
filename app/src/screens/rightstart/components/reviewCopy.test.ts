@@ -20,6 +20,8 @@ describe('05 review copy', () => {
     expect(reviewSummary([])).toBe('Nothing else on your shelf. Simple start.');
     expect(reviewSummary([it_('a', r({}))])).toBe('All fine together.');
     expect(reviewSummary([it_('a', r({})), it_('b')])).toBe("One product isn't checked yet.");
+    expect(reviewSummary([it_('a', r({})), it_('b')], 1)).toBe('Checking one product…');
+    expect(reviewSummary([it_('a'), it_('b')], 2)).toBe('Checking 2 products…');
     expect(reviewSummary([it_('a', r({ action: 'stop-on-skin' })), it_('b', r({ action: 'pause-during-trial' }))])).toBe('2 products need a change for your trial.');
   });
 });

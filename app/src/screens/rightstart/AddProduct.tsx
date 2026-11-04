@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { BodywiseProductId, CatalogId } from '../../contracts';
 import { catalog, catalogInci, classifyIngredients, productName, productPrice } from '../../engine';
@@ -56,6 +56,9 @@ function settled<T>(p: Promise<T> | undefined): Promise<T | null> {
   return Promise.race([p ?? Promise.resolve(null), new Promise<null>((r) => setTimeout(() => r(null), 0))]);
 }
 
+/** A label read usually takes 2 to 4 s; past this the line changes so it doesn't look stuck. */
+const READING_LONG_MS = 4_000;
+
 /** Screen 04a: Add a product. Two label photos (front, ingredients), or type the name, or pick a Be Bodywise one. */
 export default function AddProduct() {
   const navigate = useNavigate();
@@ -65,6 +68,7 @@ export default function AddProduct() {
   const [step, setStep] = useState<Step>('front');
   const [phase, setPhase] = useState<Phase>('idle');
   const [justCaptured, setJustCaptured] = useState(false);
+  const [readingLong, setReadingLong] = useState(false);
   const [sheet, setSheet] = useState<'type' | 'catalog' | undefined>();
   const [typedName, setTypedName] = useState('');
   const [typedList, setTypedList] = useState('');
@@ -85,6 +89,15 @@ export default function AddProduct() {
     setDraft(draft);
     void navigate(`/check/shelf/confirm${search}`);
   }
+
+  useEffect(() => {
+    if (phase !== 'reading') return;
+    const t = window.setTimeout(() => setReadingLong(true), READING_LONG_MS);
+    return () => {
+      window.clearTimeout(t);
+      setReadingLong(false);
+    };
+  }, [phase]);
 
   function flashCaptured() {
     setJustCaptured(true);
@@ -195,7 +208,7 @@ export default function AddProduct() {
       <div className={styles.tipRow}>
         <DrMehr pose="camera" size={62} alt="Dr. Mehr with a camera" />
         <p className={styles.tip} role={reading ? 'status' : phase === 'retake' || phase === 'error' ? 'alert' : undefined}>
-          {reading ? add.reading : phase === 'retake' ? add.retake : phase === 'error' ? add.error : frontStep ? add.tipFront : add.tipIngredients}
+          {reading ? (readingLong ? add.readingLong : add.reading) : phase === 'retake' ? add.retake : phase === 'error' ? add.error : frontStep ? add.tipFront : add.tipIngredients}
         </p>
       </div>
       </CameraCard>
