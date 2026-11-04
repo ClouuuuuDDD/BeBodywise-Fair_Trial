@@ -616,6 +616,22 @@ test.describe("Riya's worked example, 05, 05b and 06", () => {
     await expect(summary).not.toHaveText("One product isn't checked yet.");
   });
 
+  test('AI down: an acid toner is checked by the draft ingredient rules, says so, and can be re-checked with AI', async ({ page }) => {
+    const mock = await setup(page);
+    await fitCheck(page, RIYA);
+    mock.reviewStatus = 502;
+    await addTypedProduct(page, mock, 'Glow 7% Glycolic Toner', 'Aqua, Glycolic Acid, Glycerin, Sodium Hydroxide, Parfum', { time: 'night' });
+    await page.getByTestId('primary').click();
+    const row = page.getByTestId('review-row');
+    await expect(row).toHaveAttribute('data-action', 'pause-during-trial');
+    await expect(row.getByTestId('culprits')).toContainText('Glycolic Acid');
+    await expect(row.getByTestId('rules-review')).toContainText('Checked by our draft ingredient rules');
+    await expect(row).not.toContainText("We couldn't check this one.");
+    mock.reviewStatus = 200;
+    await row.getByTestId('retry-review').click();
+    await expect(row.getByTestId('rules-review')).toHaveCount(0);
+  });
+
   test('AC-05b-1..3: 4% No Fragrance, cost strip, list price, four other products', async ({ page }) => {
     const mock = await setup(page);
     await riyaShelf(page, mock);

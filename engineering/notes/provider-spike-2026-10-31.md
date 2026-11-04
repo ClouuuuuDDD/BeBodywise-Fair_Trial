@@ -63,3 +63,24 @@ Real keys from `.dev.vars`, built app served by `wrangler pages dev --port 8788 
 - **Dishwash bar:** its ingredient read came back as `stop-on-skin` (not Keep). The toner label and the typed deodorant spray both came back as `pause-during-trial`. Shelf review rows: `stop-on-skin, pause-during-trial, pause-during-trial`.
 - **Whole journey:** every step and the route sweep finished with no failed step. The "Your clean trial" sheet is handled by tapping the first choice ("I'll pause it") for each flagged product, then Continue.
 - **Caveat:** the dishwash photo is a screenshot of an ingredient summary, not a printed label photo, so it is an easier read than a real bottle.
+
+## Addendum, 4 Nov 2026: production outage and chain change
+
+**Symptom.** Every shelf check on production showed "Not checked yet" after about 20 s; label reads were just as slow.
+
+**Evidence** (`wrangler pages deployment tail`, one live request): gemini-3.5-flash-lite timed out at 9 s, gemini-3.1-flash-lite returned 503 ("This model is currently experiencing high demand"), Workers AI timed out with the 9 s left. OpenRouter and Groq were never tried: production had only `GEMINI_API_KEY`. Locally it worked because `.dev.vars` set `GEMINI_MODEL=gemini-3.1-flash-lite` and held all keys.
+
+**Measured that day** (real review prompt, from a laptop):
+
+| model | result |
+|---|---|
+| gemini-3.5-flash-lite | 0 of 3 (timeouts, 503); even "Say OK" hung over 20 s |
+| gemini-3.1-flash-lite | 0 of 3 in the morning (503), 3 of 3 later (1.9 to 7.8 s) |
+| gemini-3.5-flash, 3.6-flash, 3-flash-preview | 1 to 2 of 3 each |
+| openrouter nemotron (reasoning off) | 3 of 3, 2.5 to 4.8 s. Key is free tier: 50 free-model requests a day |
+| groq qwen3.8 (as configured) | 1 of 3: HTTP 400, broken JSON from reasoning. With `reasoning_effort: 'none'`: 12 of 12 when spaced 8 s apart, ~1 s; still 400s or timeouts in rapid fire (8K tokens a minute) |
+| workers-ai llama 4 scout (REST) | 6 of 6, but 5.8 to 9.8 s. REST replies in the OpenAI `choices` shape |
+
+**Changes.** Chain order Gemini 3.1 Flash Lite, Groq (reasoning off, JSON mode), OpenRouter, Gemini 3.5 Flash, Workers AI (13 s attempt). `runChain` starts entries staggered (next one after 4 s without an answer, or at once on a failure; at most 3 at once) instead of strictly one after another. The Workers AI adapter reads both reply shapes. On the phone, when no provider answers, `rulesReview` gives the pair-rule answer if one fires (provider "rules", labelled on screen); no rule firing stays "couldn't check" (a dishwash bar matches no pair rule, so it is never shown as Keep).
+
+**Result** through the real handler with production's keys: 13 of 14 answered, 2 to 8 s. The one miss had all four reachable providers fail in the same 15 s, so free tiers can be down together; that is what the rules fallback and `npm run smoke` are for.

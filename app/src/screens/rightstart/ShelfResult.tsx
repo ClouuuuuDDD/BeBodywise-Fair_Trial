@@ -86,7 +86,16 @@ function Answers() {
                     <b>{REVIEW_COPY.darkness}.</b> {rv.darknessWhy ?? ''}
                   </p>
                 ) : null}
-                {ok && rv.confidence === 'low' ? <p className={styles.unsure}>{REVIEW_COPY.lowConfidence}</p> : null}
+                {ok && rv.provider === 'rules' ? (
+                  <p className={styles.unsure} data-testid="rules-review">
+                    {REVIEW_COPY.byRules}{' '}
+                    <TextLink onClick={() => void retry(item.id)} data-testid="retry-review">
+                      {REVIEW_COPY.retryAi}
+                    </TextLink>
+                  </p>
+                ) : ok && rv.confidence === 'low' ? (
+                  <p className={styles.unsure}>{REVIEW_COPY.lowConfidence}</p>
+                ) : null}
                 {!ok ? (
                   <p className={styles.text}>
                     {REVIEW_COPY.failed}{' '}

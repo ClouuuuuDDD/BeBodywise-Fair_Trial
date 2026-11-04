@@ -455,6 +455,6 @@ export async function retryPlanReview(itemId: string): Promise<void> {
     shelf: plan.shelf.filter((i) => i.id !== itemId),
     thisProduct: { when: item.times, stung: item.stung },
   });
-  const review = await reviewShelfItem(item, context, activeToday());
+  const review = await reviewShelfItem(item, context, activeToday(), { anchor: productOf(plan) });
   mutatePlan((p) => ({ ...p, shelf: p.shelf.map((i) => (i.id === itemId ? { ...i, review } : i)) }));
 }

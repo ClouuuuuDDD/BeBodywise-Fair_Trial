@@ -4,7 +4,7 @@ import type { ShelfItem, ShelfReview, UseTime } from '../../contracts';
 import { classesOf, classifyIngredients, makeShelfItem } from '../../engine';
 import { failedReview, reviewShelfItem } from '../../review';
 import { track } from '../../state';
-import { addShelfItem, newItemId, reviewContextFor, todayISO, useRightStart } from '../../state/rightStart';
+import { addShelfItem, newItemId, reviewContextFor, targetProduct, todayISO, useRightStart } from '../../state/rightStart';
 import { AppShell, BottomBar, CheckChip, Icon, Mascot, PrimaryButton, ResultCard, Sheet, TextLink } from '../../ui';
 import { activeLines, chipClass, toneOf } from './components/activeInfo';
 import { mascotForItem } from './components/mascotFor';
@@ -86,7 +86,7 @@ function ConfirmForm({ draft, returnTo }: { draft: Draft; returnTo: string | nul
     if (needsReview) {
       setChecking(true);
       abort.current = new AbortController();
-      review = await reviewShelfItem(base, reviewContextFor({ frontName: displayName, when: time, stung }), todayISO(), { signal: abort.current.signal });
+      review = await reviewShelfItem(base, reviewContextFor({ frontName: displayName, when: time, stung }), todayISO(), { signal: abort.current.signal, anchor: targetProduct() });
       abort.current = null;
       // She left 04b: add nothing. "Add it now, check later" also aborts, but she is still here, so it adds as failed.
       if (unmounted.current) return;

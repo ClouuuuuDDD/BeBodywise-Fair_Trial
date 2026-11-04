@@ -296,7 +296,7 @@ export function reviewContextFor(thisProduct: ReviewContext['thisProduct'], excl
 export async function retryShelfReview(id: string): Promise<void> {
   const item = state.shelf.find((i) => i.id === id);
   if (!item || getExample() !== null) return;
-  const review = await reviewShelfItem(item, reviewContextFor({ when: item.times, stung: item.stung }, id), todayISO());
+  const review = await reviewShelfItem(item, reviewContextFor({ when: item.times, stung: item.stung }, id), todayISO(), { anchor: targetProduct() });
   await updateShelfItem(id, { review });
 }
 

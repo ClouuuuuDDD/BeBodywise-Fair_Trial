@@ -14,6 +14,8 @@ export const REVIEW_COPY = {
   culprits: 'Because of',
   darkness: 'May be adding to your darkness',
   lowConfidence: "Our reader wasn't sure about this one.",
+  byRules: 'Checked by our draft ingredient rules. The AI reader was busy.',
+  retryAi: 'Check with AI',
   failed: "We couldn't check this one.",
   retry: 'Retry',
   unchecked: 'Not checked yet',
